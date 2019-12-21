@@ -659,6 +659,7 @@ jb.sprites = {
       scale: {x: 1.0, y: 1.0},
       bVisible: true,
       rotation: 0,
+      debugColor: "yellow",
     };
   },
 
@@ -704,6 +705,10 @@ jb.sprites = {
   spriteSetAnchor: function(x, y) {
     this.spriteInfo.anchor.x = x === undefined ? 0.5 : x;
     this.spriteInfo.anchor.y = y === undefined ? 0.5 : y;
+  },
+
+  spriteSetDebugColor: function(newColor) {
+    this.spriteInfo.debugColor = newColor;
   },
 
   spriteSetScale: function(sx, sy) {
@@ -826,7 +831,7 @@ jb.sprites = {
 
       // DEBUG ////////////////////////
       if (jb.sprites.debug && this.bounds) {
-        this.bounds.draw("yellow", jb.ctxt);
+        this.bounds.draw(this.spriteInfo.debugColor, jb.ctxt);
       }
       // END DEBUG ////////////////////
     }
@@ -1686,83 +1691,61 @@ jb.MathEx.Spline3D.prototype.getPoint = function(position) {
 // Messages ///////////////////////////////////////////////////////////////////////////////////////////////////
 jb.messages = {
   registry: {},
-  queryRegistry: {},
-  args: [],
+  listenersToAdd: [],
+  listenersToRemove: [],
 
   listen: function(message, listener) {
-    var listeners = null;
-
-    if (!this.registry[message]) {
-      this.registry[message] = [];
-    }
-
-    listeners = this.registry[message];
-
-    if (listeners.indexOf(listener) < 0) {
-      listeners.push(listener);
-    }
-  },
-
-  answer: function(message, answerer) {
-    var answerers = null;
-
-    if (!this.queryRegistry[message]) {
-      this.queryRegistry[message] = [];
-    }
-
-    answerers = this.queryRegistry[message];
-
-    if (answerers.indexOf(answerer) < 0) {
-      answerers.push(answerer);
-    }
+    this.listenersToAdd.push({listener: listener, message: message});
   },
 
   unlisten: function(message, listener) {
-    if (this.registry[message] && this.registry[message].indexOf(listener) >= 0) {
-      jb.removeFromArray(this.registry[message], listener, true);
-    }
+    this.listenersToRemove.push({listener: listener, message: message});
   },
 
-  unanswer: function(message, answerer) {
-    if (this.queryRegistry[message] && this.queryRegistry[message].indexOf(answerer) >= 0) {
-      jb.removeFromArray(this.queryRegistry[message], answerer, true);
-    }
+  reset: function() {
+    this.registry = {};
+    this.listenersToAdd.length = 0;
+    this.listenersToRemove.length = 0;
   },
 
-  query: function(message, querier) {
-    var i = 0,
-        answerer = null;
-
-    if (querier && (typeof querier[message] === "function") && this.queryRegistry[message]) {
-      for (i=0; i<this.queryRegistry[message].length; ++i) {
-        // Call the querier's function, sending the current listener as the argument.
-        answerer = this.queryRegistry[message][i];
-        querier[message].call(querier, answerer);
+  update: function() {
+    // Add pending listeners.
+    for (var i=0; i<this.listenersToAdd.length; ++i) {
+      var info = this.listenersToAdd[i];
+      var listeners = this.registry[info.message];
+      if (!listeners) {
+        listeners = [];
+        this.registry[info.message] = listeners;
+      }
+      if (listeners.indexOf(info.listener) === -1) {
+        listeners.push(info.listener);
       }
     }
-  },
 
-  send: function(message) {
-    var i = 0,
-        listener = null;
-
-    if (this.registry[message]) {
-      this.args.length = 0;
-
-      for (i=1; i<arguments.length; ++i) {
-        this.args.push(arguments[i]);
+    // Remove deleted listeners.
+    for (var i=0; i<this.listenersToRemove.length; ++i) {
+      var info = this.listenersToRemove[i];
+      var listeners = this.registry[info.message];
+      if (listeners && listeners.indexOf(info.listener) >= 0) {
+        jb.removeFromArray(listeners, info.listener, true);
       }
+    }
 
-      for (i=0; i<this.registry[message].length; ++i) {
-        listener = this.registry[message][i];
+    this.listenersToAdd.length = 0;
+    this.listenersToRemove.length = 0;
+},
 
-        if (listener) {
-          listener[message].apply(listener, this.args);
+  broadcast: function(message, argument) {
+    var listeners = this.registry[message];
+    if (listeners) {
+      for (var i=0; i<listeners.length; ++i) {
+        if (listeners[i][message] && typeof(listeners[i][message]) === 'function') {
+          listeners[i][message](argument);
         }
       }
     }
   }
-}    
+};  
 
 ///////////////////////////////////////////////////////////////////////////////
 // ooooooooooooo oooooo   oooo ooooooooo.   oooooooooooo  .oooooo.o 
@@ -2046,6 +2029,10 @@ jb.run = function(program) {
 };
 
 // Runtime Commands ////////////////////////////////////////////////////////////
+jb.break = function() {
+  jb.bInterrupt = true;
+};
+
 jb.resumeAfter = function(label) {
     var i;
 
@@ -2088,6 +2075,7 @@ jb.end = function() {
 jb.loop = function() {
     jb.updateTimers();
     jb.stateMachines.update();
+    jb.messages.update();
     jb.transitions.update();
     jb.updateKeys();
     jb.updateTouchButtons();
@@ -2814,6 +2802,9 @@ jb.onPress = function(e) {
     var charCode = e.which || e.keyCode,
         specialCode = jb.special.last;
     
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (specialCode) {
         // User pressed a special key.
         jb.got = specialCode;
@@ -2862,6 +2853,9 @@ jb.onDown = function(e) {
         retVal = true,
         dt = 0;
     
+    e.preventDefault();
+    e.stopPropagation();
+
     jb.lastCode = keyCode;
 
     if (specialCode) {
@@ -2941,6 +2935,9 @@ jb.onUp = function(e) {
         specialCode = jb.codes["" + keyCode],
         lookupCode = null;
     
+    e.preventDefault();
+    e.stopPropagation();
+
     jb.lastCode = keyCode;
 
     if (specialCode) {

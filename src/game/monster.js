@@ -11,6 +11,7 @@ blueprints.draft(
         goal: {x: -1, y: -1, newHeading: null, teleportTo: null},
         pattern: null,
         iHuntIndex: -1,
+        visible: true,
     },
 
     // Actions
@@ -25,11 +26,38 @@ blueprints.draft(
             }
         },
 
+        onCreate: function() {
+            jb.messages.listen("powerupBlinkOn", this);
+            jb.messages.listen("powerupBlinkOff", this);
+            jb.messages.listen("powerupStart", this);
+            jb.messages.listen("powerupStop", this);
+        },
+
         reset: function(x, y) {
             this.spriteMoveTo(x, y);
             this.goal.x = x;
             this.goal.y = y;
-            this.iHuntIndex = 0
+            this.iHuntIndex = 0;
+            this.visible = true;
+            this.weak = false;
+        },
+
+        powerupStart: function() {
+            this.weak = true;
+            this.move();
+        },
+
+        powerupStop: function() {
+            this.weak = false;
+            this.move();
+        },
+
+        powerupBlinkOn: function() {
+            this.visible = true;
+        },
+
+        powerupBlinkOff: function() {
+            this.visible = false;
         },
 
         hunt: function(map) {
@@ -44,7 +72,6 @@ blueprints.draft(
             this.bounds.t = this.goal.y;
 
             if (this.goal.teleportTo !== null) {
-                console.log(">>> Teleported to (" + this.goal.teleportTo.x + ", " + this.goal.teleportTo.y + ")");
                 this.spriteMoveTo(this.goal.teleportTo.x, this.goal.teleportTo.y);
                 map.getPostTeleportGoal(this.bounds, this.moveDir, this.goal);
                 this.goal.teleportTo = null;
@@ -56,11 +83,27 @@ blueprints.draft(
         },
 
         move: function() {
-            this.spriteSetState("move");
+            if (this.weak) {
+                this.spriteSetState("move_weak");
+            }
+            else {
+                this.spriteSetState("move");
+            }
         },
 
         idle: function() {
-            this.spriteSetState("idle");
+            if (this.weak) {
+                this.spriteSetState("idle_weak");
+            }
+            else {
+                this.spriteSetState("idle");
+            }
+        },
+
+        draw: function(ctxt) {
+            if (this.visible) {
+                this.spriteDraw(ctxt);
+            }
         },
 
         loiter: function(map) {
@@ -75,7 +118,6 @@ blueprints.draft(
 
             switch (this.moveDir) {
                 case "up": case "down": {
-                    this.moveDir = this.goal.y - this.bounds.t < 0 ? "up" : "down";
                     timePastGoal = this.moveVertically(dtMS, map);
 
                     if (timePastGoal >= 0) {
@@ -87,7 +129,6 @@ blueprints.draft(
                 break;
 
                 case "left": case "right": {
-                    this.moveDir = this.goal.x - this.bounds.l < 0 ? "left" : "right";
                     timePastGoal = this.moveLaterally(dtMS, map);
 
                     if (timePastGoal >= 0) {
@@ -165,6 +206,8 @@ blueprints.draft(
         },
 
         moveLaterally: function(dtMS, map) {
+            this.moveDir = this.goal.x - this.bounds.l < 0 ? "left" : "right";
+
             var timeToGoal = Math.abs(this.goal.x - this.bounds.l) / this.speed;
             var dt = Math.min(dtMS * 0.001, timeToGoal);
             var timeRemaining = 0;
@@ -182,12 +225,17 @@ blueprints.draft(
                 }
 
                 timeRemaining = Math.floor(dtMS - timeToGoal * 1000);
+                if (timeRemaining < jb.k.EPSLION) {
+                    timeRemaining = 0;
+                }
             }
 
             return timeRemaining;
         },
 
         moveVertically: function(dtMS, map) {
+            this.moveDir = this.goal.y - this.bounds.t < 0 ? "up" : "down";
+
             var timeToGoal = Math.abs(this.goal.y - this.bounds.t) / this.speed;
             var dt = Math.min(dtMS * 0.001, timeToGoal);
             var timeRemaining = 0;
@@ -203,6 +251,9 @@ blueprints.draft(
                 }
 
                 timeRemaining = Math.floor(dtMS - timeToGoal * 1000);
+                if (timeRemaining < jb.k.EPSLION) {
+                    timeRemaining = 0;
+                }
             }
 
             return timeRemaining;
@@ -210,7 +261,7 @@ blueprints.draft(
     
         move: function(dtMS, map) {
             switch (this.moveState) {
-                case "loiter": {
+                case "up": {
                     this.spriteMoveBy(0, dtMS * -100 * 0.001);
                 }
                 break;
@@ -256,20 +307,24 @@ jb.monster = {
         "lsrlrlslrr",
     ],
 
-    create: function(tileSheet, idleRow, idleCol) {
+    create: function(tileSheet, idleRow, idleCol, weakRow, weakCol) {
         var it = blueprints.build("monster");
         it.spriteSetSheet(tileSheet);
 
         if (this.frames === null) {
             this.frames = {
                 idle: [{row: idleRow, col: idleCol}],
-                move: [{row: idleRow + 1, col: idleCol}, {row: idleRow, col: idleCol}]
+                move: [{row: idleRow + 1, col: idleCol}, {row: idleRow, col: idleCol}],
+                idle_weak: [{row: weakRow, col: weakCol}],
+                move_weak: [{row: weakRow + 1, col: weakCol}, {row: weakRow, col: weakCol}],
             };
         }
 
          var states = {
             idle: jb.sprites.createState(this.frames["idle"], jb.k.IDLE_DT, true, null),
             move: jb.sprites.createState(this.frames["move"], jb.k.ANIM_DT, false, null),
+            idle_weak: jb.sprites.createState(this.frames["idle_weak"], jb.k.IDLE_DT, true, null),
+            move_weak: jb.sprites.createState(this.frames["move_weak"], jb.k.ANIM_DT, false, null),
         };
 
         it.speed = this.SPEED;

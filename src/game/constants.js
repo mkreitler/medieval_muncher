@@ -6,6 +6,13 @@ jb.k = {
     SLIP_THROUGH_SIZE: 0.8,
     ALIGN_BLEND_FAST: 25.0,
     ALIGN_BLEND_SLOW: 25.0,
+    DEATH_FUDGE: 0.5,
+    DEATH_ACCURACY: 0.1,
+    ORBIT_FREQ: 1.5,
+    ORBIT_SCALAR: 1.167,
+    POWERUP_LIFETIME: 4,
+    POWERUP_WARNING_SCALAR: 0.5,
+    POWERUP_BLINKS: 5,
     TILESET: [
         {row: 0, doorRow: 3, doorCol: 28},
     ],

@@ -1,7 +1,7 @@
 jb.mapTest = {
     map: [
         "******************************************",
-        "**..........**..............**..........**",
+        "**P1........**..............**........P1**",
         "**..******..**..**********..**..******..**",
         "**......**......................**......**",
         "**..**..**..**..****..****..**..**..**..**",
@@ -9,9 +9,9 @@ jb.mapTest = {
         "**......**..********..********..**......**",
         "**..**..............gg..............**..**",
         "**..**..****..******dd******..****..**..**",
-        "**..**..****..**1.......4.**..****..**..**",
-        "t2............**2.......5.**............t1",
-        "**..**..****..**3.......6.**..****..**..**",
+        "**..**..****..**1,,,,,,,4,**..****..**..**",
+        "t2............**2,,,,,,,5,**............t1",
+        "**..**..****..**3,,,,,,,6,**..****..**..**",
         "**..**..****..******dd******..****..**..**",
         "**..**..............gg..............**..**",
         "**..**..************..************..**..**",
@@ -19,7 +19,7 @@ jb.mapTest = {
         "****..****..******..**..******..****..****",
         "**....**....**......**......**....**....**",
         "**..****..****..**********..****..****..**",
-        "**......................................**",
+        "**P1..................................P1**",
         "******************************************",
     ],
 
@@ -81,12 +81,22 @@ jb.mapTest = {
         return Math.floor((x - this.origin.x) / (this.tileSize * this.scale));
     },
 
-    yFromRow: function(row) {
-        return this.origin.y + row * this.tileSize * this.scale;
+    yFromRow: function(row, size) {
+        size = size || this.tileSize;
+        return this.origin.y + row * size * this.scale;
     },
 
-    xFromCol: function(col) {
-        return this.origin.x + col * this.tileSize * this.scale;
+    xFromCol: function(col, size) {
+        size = size || this.tileSize;
+        return this.origin.x + col * size * this.scale;
+    },
+
+    yFromRowCenter: function(row) {
+        return this.yFromRow(row) + this.tileSize / 2 * this.scale;
+    },
+
+    xFromColCenter: function(col) {
+        return this.xFromCol(col) + this.tileSize / 2 * this.scale;
     },
 
     fadeSprite: function(sprite) {
@@ -246,6 +256,35 @@ jb.mapTest = {
         return this.collisionBounds;
     },
 
+    isDirectionBlocked: function(x, y, dir) {
+        var row = this.rowFromY(y);
+        var col = this.colFromX(x);
+
+        switch(dir) {
+            case "up": {
+                row -= 1;
+            }
+            break;
+
+            case "right": {
+                col += 1;
+            }
+            break;
+
+            case "down": {
+                row += 1;
+            }
+            break;
+
+            case "left": {
+                col -= 1;
+            }
+            break;
+        }
+
+        return !this.isInBounds(row, col) || this.isPlayerBlocked(row, col);
+    },
+
     isPlayerBlocked: function(row, col) {
         var blocked = false;
 
@@ -282,16 +321,16 @@ jb.mapTest = {
             }
         }
 
-        var iGoal = 0;
-        if (nearestGoals.length > 1) {
-            iGoal = Math.floor(Math.random() * nearestGoals.length);
-        }
+        jb.assert(nearestGoals.length > 0, "No valid goal!");
+
+        var iGoal = Math.floor(Math.random() * nearestGoals.length);
 
         goalOut.x = nearestGoals[iGoal].x;
         goalOut.y = nearestGoals[iGoal].y;
     },
 
     create: function(tileSize, scale, origin, tiles, tileRow, doorRow, doorCol) {
+        var coinPos = {row: -1, col: -1};
         this.canvas = document.createElement("canvas");
         this.canvas.width = this.map[0].length / 2 * tileSize * scale;
         this.canvas.height = this.map.length * tileSize * scale;
@@ -300,6 +339,8 @@ jb.mapTest = {
         this.scale = scale;
 
         var ctxt = this.canvas.getContext("2d");
+        var powerupInfo = {row: -1, col: -1, type: -1};
+
         ctxt.imageSmoothingEnabled = false;
 
         for (var iRow=0; iRow<this.map.length; ++iRow) {
@@ -316,6 +357,13 @@ jb.mapTest = {
                         type += iCol - 1 >= 0 ? (this.map[iRow][iCol * 2 - 2] === '*' ? 8 : 0) : 0;
                 
                         tiles.draw(ctxt, tileRow, this.tileTypeIndices[type], x, y);  
+                    }
+                    break;
+
+                    case '.': {
+                        coinPos.row = iRow;
+                        coinPos.col = iCol;
+                        jb.messages.broadcast("spawnCoin", coinPos);
                     }
                     break;
 
@@ -343,9 +391,31 @@ jb.mapTest = {
                     case 't': {
                         this.teleporters.push({row: iRow, col: iCol, x: this.xFromCol(iCol) / this.scale, y: this.yFromRow(iRow) / this.scale, linked: parseInt(this.map[iRow][2 * iCol + 1]) - 1});
                     }
+                    break;
+
+                    case 'P': {
+                        var powerupType = parseInt(this.map[iRow][iCol * 2 + 1]);
+                        powerupInfo.row = iRow;
+                        powerupInfo.col = iCol;
+                        powerupInfo.type = powerupType;
+                        jb.messages.broadcast("spawnPowerup", powerupInfo);
+                    }
+                    break;
                 }
             }
         }
+    },
+
+    getTeleporterAt: function(x, y) {
+        var row = this.rowFromY(y);
+        var col = this.colFromX(x);
+        var teleporter = null;
+
+        if (this.isCellTeleporter(row, col)) {
+            teleporter = this.getTeleporterLinkedTo(row, col);
+        }
+
+        return teleporter;
     },
 
     getPostTeleportGoal(bounds, moveDir, goalOut) {
@@ -464,6 +534,9 @@ jb.mapTest = {
     },
 
     isCellTeleporter: function(row, col) {
+        if (!this.isInBounds(row, col)) {
+            console.log("Out of bounds!");
+        }
         return this.map[row][2 * col] == 't';
     },
 
@@ -739,7 +812,10 @@ jb.mapTest = {
             }
         }
 
-        if (!foundGoal) {
+        if (!foundGoal && turn === 's') {
+            // Let it fail. Only the player should ever reach this point.
+        }
+        else if (!foundGoal) {
             jb.assert(!finalAttempt, "Failed to find hunt goal!");
 
             // Reverse direction and try again.
@@ -759,6 +835,142 @@ jb.mapTest = {
 
             jb.assert(dirCheck[moveDir].dx * dx >= 0 && dirCheck[moveDir].dy * dy >= 0, "Already past goal!");
         }
+
+        return foundGoal;
+    },
+
+    getPlayerGoal: function(bounds, moveDir, goalOut) {
+        var startRow = this.rowFromY(bounds.t + bounds.halfHeight);
+        var startCol = this.colFromX(bounds.l + bounds.halfWidth);
+        var foundGoal = false;
+        var turns = [];
+        goalOut.teleportTo = null;
+
+        // This monster wants to go straight until it hits a wall.
+        switch(moveDir) {
+            case "up": {
+                for (var i=startRow - 1; i>=0; --i) {
+                    if (this.isCellTeleporter(i, startCol)) {
+                        foundGoal = true;
+                        goalOut.x = this.xFromCol(startCol);
+                        goalOut.y = this.yFromRow(i);
+                        goalOut.teleportTo = this.getTeleporterLinkedTo(i, startCol);
+                        // Heading doesn't change.
+                        break;
+                    }
+                    else if (!this.isCellClear(i, startCol)) {
+                        var goalX = this.xFromCol(startCol);
+                        var goalY = this.yFromRow(i + 1);
+
+                        if (i + 1 !== startRow) {
+                            goalOut.x = goalX;
+                            goalOut.y = goalY;
+                            foundGoal = true;
+                        }
+                        else {
+                            goalOut.x = bounds.l;
+                            goalOut.y = goalY;
+                        }
+
+                        break;
+                    }
+                }
+            }
+            break;
+
+            case "right": {
+                for (var i=startCol + 1; i<this.map[startCol].length; ++i) {
+                    if (this.isCellTeleporter(startRow, i)) {
+                        foundGoal = true;
+                        goalOut.x = this.xFromCol(i);
+                        goalOut.y = this.yFromRow(startRow);
+                        goalOut.teleportTo = this.getTeleporterLinkedTo(startRow, i);
+                        // Heading doesn't change.
+                        break;
+
+                    }
+                    else if (!this.isCellClear(startRow, i)) {
+                        var goalX = this.xFromCol(i - 1);
+                        var goalY = this.yFromRow(startRow);
+
+                        if (i - 1 !== startCol) {
+                            goalOut.x = goalX;
+                            goalOut.y = goalY;
+                            foundGoal = true;
+                        }
+                        else {
+                            goalOut.x = goalX;
+                            goalOut.y = bounds.t;
+                        }
+
+                        break;
+                    }
+                }
+            }
+            break;
+
+            case "down": {
+                for (var i=startRow + 1; i<this.map.length; ++i) {
+                    if (this.isCellTeleporter(i, startCol)) {
+                        foundGoal = true;
+                        goalOut.x = this.xFromCol(startCol);
+                        goalOut.y = this.yFromRow(i);
+                        goalOut.teleportTo = this.getTeleporterLinkedTo(i, startCol);
+                        // Heading doesn't change.
+                        break;
+                    }
+                    else if (!this.isCellClear(i, startCol)) {
+                        var goalX = this.xFromCol(startCol);
+                        var goalY = this.yFromRow(i - 1);
+
+                        if (i - 1 !== startRow) {
+                            goalOut.x = goalX;
+                            goalOut.y = goalY;
+                            foundGoal = true;
+                        }
+                        else {
+                            goalOut.x = bounds.l;
+                            goalOut.y = goalY;
+                        }
+
+                        break;
+                    }
+                }
+            }
+            break;
+
+            case "left": {
+                for (var i=startCol - 1; i>=0; --i) {
+                    if (this.isCellTeleporter(startRow, i)) {
+                        foundGoal = true;
+                        goalOut.x = this.xFromCol(i);
+                        goalOut.y = this.yFromRow(startRow);
+                        goalOut.teleportTo = this.getTeleporterLinkedTo(startRow, i);
+                        // Heading doesn't change.
+                        break;
+                    }
+                    else if (!this.isCellClear(startRow, i)) {
+                        var goalX = this.xFromCol(i + 1);
+                        var goalY = this.yFromRow(startRow);
+
+                        if (i + 1 !== startCol) {
+                            goalOut.x = goalX;
+                            goalOut.y = goalY;
+                            foundGoal = true;
+                        }
+                        else {
+                            goalOut.x = goalX;
+                            goalOut.y = bounds.t;
+                        }
+
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+
+        return foundGoal;
     },
 };
 
