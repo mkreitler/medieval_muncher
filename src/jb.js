@@ -2715,17 +2715,23 @@ jb.measureOpenTypeText = function(text) {
 jb.print = function(text) {
     jb.printAt(text, 0, 0);
 };
-jb.printAtXY = function(text, x, y, anchorX, anchorY) {
+jb.printAtXY = function(text, x, y, anchorX, anchorY, fontSize, fontName) {
   anchorX = anchorX || 0;
   anchorY = anchorY || 0;
+  fontSize = fontSize || jb.fontSize;
+  fontName = fontName || jb.fontName;
 
   if (jb.openTypeFont) {
     jb.drawOpenTypeFontAt(jb.ctxt, text, x, y, jb.foreColor, jb.foreColor, anchorX, anchorY);
   }
   else {
-    // Measure the text at this font size.
-    var textSize = jb.ctxt.measureText(text);
     jb.ctxt.save();
+
+    // Measure the text at this font size.
+    jb.fontInfo = "" + fontSize + "px " + jb.fontName;
+    jb.ctxt.font = jb.fontInfo;
+    
+    var textSize = jb.ctxt.measureText(text);
     jb.ctxt.fillStyle = jb.foreColor;
     jb.ctxt.strokeStyle = jb.foreColor;
 

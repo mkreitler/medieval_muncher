@@ -18,6 +18,7 @@ jb.k = {
     COLLISION_FUDGE: 0.9 * 0.9,
     MONSTER_RESPAWN_TIME: 1,
     WEAK_SPEED_FACTOR: 0.67,
+    MONSTER_SPEED_EDGE: 0.033,
     TILESET: [
         {row: 0, doorRow: 3, doorCol: 28},
     ],

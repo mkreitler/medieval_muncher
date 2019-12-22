@@ -7,21 +7,80 @@
  * */
 // Puff Particle //////////////////////////////////////////////////////////////
 blueprints.draft(
-    "puffParticle",
+    "textParticle",
 
     // Data
     {
         timer: 0,
         visible: false,
         manager: null,
+        startPos: {x: -1, y: -1},
+        endPos: {x: -1, y: -1},
+        pos: {x: -1, y: -1},
+        alpha: 1,
+        text: "",
+        visible: true,
     },
 
     // Actions
     {
-        setManager: function(manager) {
-            this.manager = manager;
+        spawn: function(x, y, text) {
+            this.startPos.x = x;
+            this.startPos.y = y;
+            this.endPos.x = x;
+            this.endPos.y = y + jb.particles.TEXT_TRANS_Y * jb.particles.scale;
+            this.timer = 0;
+            this.visible = true;
+            this.text = text;
         },
 
+        update: function(dtMS) {
+            this.timer += dtMS * 0.001;
+            var param = this.timer / jb.particles.TEXT_DURATION;
+
+            param = Math.min(1, Math.max(0, param));
+
+            if (param > 1 - jb.k.EPSILON) {
+                this.despawn();
+            }
+            else {
+                this.pos.x = this.endPos.x * param + this.startPos.x * (1 - param);
+                this.pos.x = Math.round(this.pos.x);
+    
+                this.pos.y =this.endPos.y * param + this.startPos.y * (1 - param);
+                this.pos.y = Math.round(this.pos.y);
+
+                this.alpha = Math.sqrt(Math.max(0, 1.0 - param));
+            }
+        },
+
+        draw: function(ctxt) {
+            if (this.visible) {
+                var oldAlpha = ctxt.globalAlpha;
+                ctxt.globalAlpha = this.alpha;
+                jb.printAtXY(this.text, this.pos.x, this.pos.y, 0.5, 0.5, jb.particles.TEXT_SIZE * jb.particles.scale);
+                ctxt.globalAlpha = oldAlpha;
+            }
+        },
+
+        despawn: function() {
+            this.visible = false;
+            jb.particles.despawn(this, jb.particles.TYPE.TEXT);
+        },
+    },
+);
+
+blueprints.draft(
+    "puffParticle",
+
+    // Data
+    {
+        timer: 0,
+        visible: false,
+    },
+
+    // Actions
+    {
         spawn: function(x, y) {
             this.spriteResetTimer();
             this.spriteSetState("puff");
@@ -55,9 +114,7 @@ blueprints.draft(
         },
 
         despawn() {
-            if (this.manager) {
-                this.manager.despawn(this, jb.particles.TYPE.PUFF);
-            }
+            jb.particles.despawn(this, jb.particles.TYPE.PUFF);
         },
     }
 );
@@ -68,6 +125,9 @@ blueprints.make("puffParticle", ["sprite"]);
 
 jb.particles = {
     TYPE: {PUFF: "puffs", TEXT: "text"},
+    TEXT_DURATION: 1,
+    TEXT_TRANS_Y: -10,
+    TEXT_SIZE: 10,
 
     fxSheet: null,
     cache: {},
@@ -80,6 +140,7 @@ jb.particles = {
         this.scale = scale;
 
         jb.messages.listen("spawnPuffParticle", this);
+        jb.messages.listen("spawnTextParticle", this);
     },
 
     reset: function() {
@@ -105,6 +166,26 @@ jb.particles = {
     despawn: function(particle, type) {
         jb.removeFromArray(this.active, particle, false);
         this.cache[type].push(particle);
+    },
+
+    spawnTextParticle: function(info) {
+        var texts = this.cache[this.TYPE.TEXT];
+        var newPart = null;
+
+        if (!texts) {
+            texts = [];
+            this.cache[this.TYPE.TEXT] = texts;
+        }
+
+        if (texts.length === 0) {
+            newPart = blueprints.build("textParticle");
+        }
+        else {
+            newPart = texts.pop();
+        }
+
+        newPart.spawn(info.x, info.y, info.text);
+        this.active.push(newPart);
     },
 
     spawnPuffParticle: function(info) {
@@ -143,12 +224,7 @@ jb.particles = {
 
         it.spriteSetStates(states);
         it.spriteSetState("puff");
-        it.setManager(this);
 
         return it;
-    },
-
-    despawnSprite: function(sprite) {
-        console.log("this: " + this + "   sprite: " + sprite);
     },
 };

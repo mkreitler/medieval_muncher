@@ -111,6 +111,7 @@ blueprints.draft(
             this.deathPoint.y = this.bounds.t;
 
             jb.messages.broadcast("spawnPuffParticle", {x: this.bounds.l + this.bounds.halfWidth, y: this.bounds.t + this.bounds.halfHeight});
+            jb.messages.broadcast("spawnTextParticle", {x: this.bounds.l + this.bounds.halfWidth, y: this.bounds.t + this.bounds.halfHeight, text: "50"});
         },
 
         hunt: function(map) {
@@ -207,7 +208,6 @@ blueprints.draft(
                               Math.floor(this.startPoint.y * param + this.deathPoint.y / scale * (1.0 - param)));
 
             if (this.timer > jb.k.MONSTER_RESPAWN_TIME) {
-                this.heal();
                 this.spriteMoveTo(this.startPoint.x, this.startPoint.y);
                 this.start(map, this.level);
             }
@@ -399,7 +399,7 @@ jb.monster = {
             move_weak: jb.sprites.createState(this.frames["move_weak"], jb.k.ANIM_DT, false, null),
         };
 
-        it.baseSpeed = this.SPEED;
+        it.baseSpeed = this.SPEED * jb.k.MONSTER_SPEED_EDGE;
         it.id = this.iSpawn++ % jb.k.NUM_MONSTERS;
         it.pattern = this.huntPatterns[it.id % this.huntPatterns.length];
         it.spriteSetStates(states);

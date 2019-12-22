@@ -48,7 +48,6 @@ blueprints.draft(
 
             this.powerup = powerup;
             jb.messages.broadcast("powerupStart", this.powerup);
-            console.log("collectPowerup");
         },
 
         dropPowerup: function(powerup) {
