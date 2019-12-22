@@ -26,8 +26,7 @@ blueprints.draft(
                 this.startPoint = map.getMonsterStart();
             }
 
-            this.heal();
-            this.reset(this.startPoint.x, this.startPoint.y);
+            this.reset(this.startPoint.x, this.startPoint.y, false);
             this.loiter(jb.mapTest);
             this.spriteSetAlpha(1.0);
             this.level = level;
@@ -45,7 +44,9 @@ blueprints.draft(
 
             this.body2dUpdate(dtMS);
             this.spriteUpdate(dtMS);
-            map.fadeSprite(this);
+            if (this.isAlive()) {
+                map.fadeSprite(this);
+            }
 
             if (this.moveState) {
                 this.moveState(dtMS, map);
@@ -60,13 +61,16 @@ blueprints.draft(
             jb.messages.listen("hitPowerup", this);
         },
 
-        reset: function(x, y) {
+        reset: function(x, y, doHeal) {
             this.spriteMoveTo(x, y);
             this.goal.x = x;
             this.goal.y = y;
             this.iHuntIndex = 0;
             this.visible = true;
-            this.heal();
+
+            if (doHeal) {
+                this.heal();
+            }
         },
 
         hitPowerup: function(powerup) {
@@ -110,8 +114,10 @@ blueprints.draft(
             this.deathPoint.x = this.bounds.l;
             this.deathPoint.y = this.bounds.t;
 
-            jb.messages.broadcast("spawnPuffParticle", {x: this.bounds.l + this.bounds.halfWidth, y: this.bounds.t + this.bounds.halfHeight});
-            jb.messages.broadcast("spawnTextParticle", {x: this.bounds.l + this.bounds.halfWidth, y: this.bounds.t + this.bounds.halfHeight, text: "50"});
+            jb.monster.bumpKillMultiple();
+
+            jb.messages.broadcast("spawnPuffParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight));
+            jb.messages.broadcast("spawnTextParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight, "" + jb.monster.getKillScore()));
         },
 
         hunt: function(map) {
@@ -330,54 +336,56 @@ blueprints.draft(
 
             return timeRemaining;
         },
-    
-        move: function(dtMS, map) {
-            switch (this.moveState) {
-                case "up": {
-                    this.spriteMoveBy(0, dtMS * -100 * 0.001);
-                }
-                break;
-    
-                case "right": {
-                    this.spriteMoveBy(dtMS * 100 * 0.001, 0);
-                    this.spriteSetScale(-1, 1);
-                }
-                break;
-    
-                case "down": {
-                    this.spriteMoveBy(0, dtMS * 100 * 0.001);
-                }
-                break;
-    
-                case "left": {
-                    this.spriteMoveBy(-dtMS * 100 * 0.001, 0);
-                    this.spriteSetScale(1, 1);
-                }
-                break;
-    
-                default: {
-                    // null result
-                    // Nothing to do in this case...
-                    this.idle();
-                }
-                break;
-            }
-        }
     },
 );
 
 blueprints.make("monster", ["sprite", "body2d"]);
 
 jb.monster = {
-    SPEED: 100,
     frames: null,
     iSpawn: 0,
+    killMultiple: 0,
+    monsters: [],
     huntPatterns: [
         "rrlslrl",
         "llrlrlsr",
         "rllrlrrls",
         "lsrlrlslrr",
     ],
+    particleInfo: {x: -1, y: -1, text: ""},
+
+    getParticleInfo: function(x, y, text) {
+        this.particleInfo.x = x;
+        this.particleInfo.y = y;
+        this.particleInfo.text = text;
+
+        return this.particleInfo;
+    },
+
+    init: function() {
+        jb.messages.listen("dropPowerup", this);
+    },
+
+    dropPowerup: function() {
+        this.resetKillMultiple();
+    },
+
+    reset: function() {
+        this.resetKillMultiple();
+    },
+
+    bumpKillMultiple: function() {
+        this.killMultiple += 1;
+        this.killMultiple = Math.min(this.monsters.length, this.killMultiple);
+    },
+
+    resetKillMultiple: function() {
+        this.killMultiple = 0;
+    },
+
+    getKillScore: function() {
+        return jb.k.BASE_KILL_SCORE * this.killMultiple;
+    },
 
     create: function(tileSheet, idleRow, idleCol, weakRow, weakCol) {
         var it = blueprints.build("monster");
@@ -399,18 +407,13 @@ jb.monster = {
             move_weak: jb.sprites.createState(this.frames["move_weak"], jb.k.ANIM_DT, false, null),
         };
 
-        it.baseSpeed = this.SPEED * jb.k.MONSTER_SPEED_EDGE;
+        it.baseSpeed = jb.k.SPEED.MONSTER;
         it.id = this.iSpawn++ % jb.k.NUM_MONSTERS;
         it.pattern = this.huntPatterns[it.id % this.huntPatterns.length];
         it.spriteSetStates(states);
         it.spriteSetState("move");
 
-        it.oldSetAlpha = it.spriteSetAlpha;
-        it.spriteSetAlpha = function(alpha) {
-            if (it.isAlive()) {
-                it.oldSetAlpha(alpha);
-            }
-        };
+        this.monsters.push(it);
 
         return it;
     }

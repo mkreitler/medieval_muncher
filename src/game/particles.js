@@ -50,7 +50,7 @@ blueprints.draft(
                 this.pos.y =this.endPos.y * param + this.startPos.y * (1 - param);
                 this.pos.y = Math.round(this.pos.y);
 
-                this.alpha = Math.sqrt(Math.max(0, 1.0 - param));
+                this.alpha = Math.max(0, 1.0 - param);
             }
         },
 
@@ -77,6 +77,7 @@ blueprints.draft(
     {
         timer: 0,
         visible: false,
+        localScale: 2,
     },
 
     // Actions
@@ -84,8 +85,10 @@ blueprints.draft(
         spawn: function(x, y) {
             this.spriteResetTimer();
             this.spriteSetState("puff");
-            this.spriteMoveTo(x, y);
             this.spriteSetAlpha(1.0);
+            this.spriteSetAnchor(0.5, 0.5);
+            this.spriteSetScale(this.localScale, this.localScale);
+            this.spriteMoveTo(x / jb.particles.scale, y / jb.particles.scale);
             this.visible = true;
             this.timer = 0;
         },
@@ -127,7 +130,7 @@ jb.particles = {
     TYPE: {PUFF: "puffs", TEXT: "text"},
     TEXT_DURATION: 1,
     TEXT_TRANS_Y: -10,
-    TEXT_SIZE: 10,
+    TEXT_SIZE: 20,
 
     fxSheet: null,
     cache: {},
@@ -204,7 +207,7 @@ jb.particles = {
             puff = puffs.pop();
         }
 
-        puff.spawn(info.x / this.scale - this.fxSheet.cellDx / 2, info.y / this.scale - this.fxSheet.cellDy / 2);
+        puff.spawn(info.x, info.y);
         this.active.push(puff);
     },
 

@@ -1,5 +1,5 @@
 blueprints.draft(
-    "knight",
+    "player",
 
     // Data
     {
@@ -8,6 +8,7 @@ blueprints.draft(
         wantDir: null,
         scale: 1,
         powerup: null,
+        wantsInvisibility: false,
         goal: {x: -1, y: -1, newHeading: null, teleportTo: null},
                 testDirs: {
             "up": {dx: 0, dy: -1},
@@ -15,6 +16,7 @@ blueprints.draft(
             "down": {dx: 0, dy: 1},
             "left": {dx: -1, dy: 0}
         },
+        fireballs: null,
     },
 
     // Actions
@@ -30,7 +32,7 @@ blueprints.draft(
         },
 
         reset: function(map, tileSize) {
-            this.speed = jb.playerKnight.SPEED;
+            this.speed = jb.k.SPEED.PLAYER;
             this.idle();
             this.spriteMoveTo(map.startX(), map.startY());
             this.goal.x = this.bounds.l;
@@ -39,11 +41,34 @@ blueprints.draft(
             this.testDirs.right.dx = tileSize;
             this.row = -1;
             this.col = -1;
+            this.wantsInvisibility = false;
         },
 
         collectPowerup: function(powerup) {
             if (this.powerup) {
                 jb.messages.broadcast("dropPowerup", this.powerup);
+            }
+
+            switch(powerup.type) {
+                case jb.powerups.TYPES.SWORD: {
+
+                }
+                break;
+                
+                case jb.powerups.TYPES.CLOAK: {
+                    this.wantsInvisibility = true;
+                    this.spriteSetAlpha(jb.k.INVISIBILITY_ALPHA);
+                }
+                break;
+                
+                case jb.powerups.TYPES.SCROLL: {
+                }
+                break;
+                
+                default: {
+                    jb.assert(false, "Collected unknown powerup!");
+                }
+                break;
             }
 
             this.powerup = powerup;
@@ -56,6 +81,9 @@ blueprints.draft(
             if (this.powerup === powerup) {
                 this.powerup = null;
             }
+
+            this.wantsInvisibility = false;
+            this.spriteSetAlpha(1.0);
         },
 
         update: function(dir, dtMS, map) {
@@ -67,7 +95,7 @@ blueprints.draft(
             this.col = map.colFromX(this.bounds.l + this.bounds.halfWidth);
 
             if (this.powerup) {
-                this.powerup.update(dtMS, this.bounds, this.spriteInfo.scale.x);
+                this.powerup.update(dtMS, this.bounds, this.spriteInfo.scale.x, map);
             }
         },
 
@@ -171,7 +199,9 @@ blueprints.draft(
                 this.idle();
             }
 
-            map.fadeSprite(this);
+            if (!this.wantsInvisibility) {
+                map.fadeSprite(this);
+            }
         },
 
         teleportTo: function(teleporter) {
@@ -237,32 +267,21 @@ blueprints.draft(
     },
 );
 
-blueprints.make("knight", ["sprite", "body2d"]);
+blueprints.make("player", ["sprite", "body2d"]);
 
-jb.playerKnight = {
-    SPEED: 100,
-    frames: null,
-
-    create: function(tileSheet, x, y, scale) {
-        var it = blueprints.build("knight");
+jb.player = {
+    create: function(tileSheet, x, y, scale, frames, fxSheet) {
+        var it = blueprints.build("player");
         it.spriteSetSheet(tileSheet);
 
-        if (this.frames === null) {
-            this.frames = {
-                idle: [{row: 0, col: 0}],
-                walk: [{row: 1, col: 0}, {row: 0, col: 0}]
-            }
-        }
-
         var states = {
-            idle: jb.sprites.createState(this.frames["idle"], jb.k.IDLE_DT, true, null),
-            walk: jb.sprites.createState(this.frames["walk"], jb.k.ANIM_DT, false, null),
+            idle: jb.sprites.createState(frames["idle"], jb.k.IDLE_DT, true, null),
+            walk: jb.sprites.createState(frames["walk"], jb.k.ANIM_DT, false, null),
         }
 
         it.spriteSetStates(states);
         it.spriteSetState("idle");
         it.spriteMoveTo(x, y);
-        it.testBounds = new jb.bounds(-1, -1, -1, -1);
         it.scale = scale;
 
         return it;

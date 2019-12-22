@@ -14,19 +14,18 @@ jb.program = {
 
   // VARIABLES ///////////////////////////////////////////////////////////////////
   tileSet: 0,
-  worldTiles: null,
-  creatureTiles: null,
-  itemTiles: null,
-  fxTiles: null,
   player: null,
-  knight: null,
+  player: null,
   origin: {x: -1, y: -1},
-  iTileSet: 0,
+  tileSet: null,
+  playerFrames: null,
   directions: ["up", "right", "down", "left"],
   monsters: [],
   gameState: -1,
-  monsterType: {idleRow: -1, idleCol: -1, weakRow: -1, weakCol: -1},
   level: 1,
+  maxSpeed: 0,
+  minSize: Number.MAX_VALUE,
+  sheets: {},
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -34,6 +33,10 @@ jb.program = {
 
     for (var i=0; i<jb.k.NUM_MONSTERS; ++i) {
       this.monsters.push(null);
+    }
+
+    for (var key in jb.k.SPEED) {
+      this.maxSpeed = Math.max(this.maxSpeed, jb.k.SPEED[key]);
     }
 
     var viewSize = jb.getViewSize()
@@ -51,10 +54,9 @@ jb.program = {
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
     // TODO: make this map-dependent.
-    this.monsterType.idleRow = 20;
-    this.monsterType.idleCol = 14;
-    this.monsterType.weakRow = 20;
-    this.monsterType.weakCol = 13;
+    jb.assert(this.customizeForPassword("stalking"), "Customization failed!");
+    // jb.assert(this.customizeForPassword("slay bells"), "Customization failed!");
+    // jb.assert(this.customizeForPassword("santa claws"), "Customization failed!");
 
     resources.loadWebFonts(["VT323"]);
   },
@@ -64,16 +66,24 @@ jb.program = {
   },
 
   initialize: function() {
-    this.worldTiles = new jb.tileSheetObj(this.IMAGES.world, this.SIZE, this.SIZE);
-    this.creatureTiles = new jb.tileSheetObj(this.IMAGES.creatures, this.SIZE, this.SIZE);
-    this.itemTiles = new jb.tileSheetObj(this.IMAGES.items, this.SMALL_SIZE, this.SMALL_SIZE);
-    this.fxTiles = new jb.tileSheetObj(this.IMAGES.fx, this.SIZE, this.SIZE);
+    var sheets = [];
+
+    this.sheets.worldTiles = new jb.tileSheetObj(this.IMAGES.world, this.SIZE, this.SIZE);
+    this.sheets.creatureTiles = new jb.tileSheetObj(this.IMAGES.creatures, this.SIZE, this.SIZE);
+    this.sheets.itemTiles = new jb.tileSheetObj(this.IMAGES.items, this.SMALL_SIZE, this.SMALL_SIZE);
+    this.sheets.fxTiles = new jb.tileSheetObj(this.IMAGES.fx, this.SIZE, this.SIZE);
+
+    for (var key in this.sheets) {
+      this.minSize = Math.min(this.minSize, this.sheets[key].cellDx * this.SCALE);
+      this.minSize = Math.min(this.minSize, this.sheets[key].cellDy * this.SCALE);
+    }
 
     jb.setWebFont("VT323");
     jb.setColumns(this.COLUMNS);
-    jb.bank.init(this.itemTiles, this.SCALE);
-    jb.powerups.init(this.itemTiles, this.SCALE);
-    jb.particles.init(this.fxTiles, this.SCALE);
+    jb.bank.init(this.sheets.itemTiles, this.SCALE);
+    jb.monster.init();
+    jb.powerups.init(this.sheets.itemTiles, this.SCALE, this.powerupType, this.sheets.fxTiles, jb.mapTest);
+    jb.particles.init(this.sheets.fxTiles, this.SCALE);
 
     jb.messages.listen("levelComplete", this);
 
@@ -87,16 +97,15 @@ jb.program = {
     jb.bank.reset();
     jb.powerups.reset();
 
-    var ts = jb.k.TILESET[this.iTileSet];
-    jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.worldTiles, ts.row, ts.doorRow, ts.doorCol);
+    jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.sheets.worldTiles, this.tileSet.row, this.tileSet.doorRow, this.tileSet.doorCol);
 
-    this.knight = jb.playerKnight.create(this.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE);
+    this.player = jb.player.create(this.sheets.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE, this.playerFrames);
 
     for (var i=0; i<this.monsters.length; ++i) {
-      this.monsters[i] = jb.monster.create(this.creatureTiles, this.monsterType.idleRow, this.monsterType.idleCol, this.monsterType.weakRow, this.monsterType.weakCol);
+      this.monsters[i] = jb.monster.create(this.sheets.creatureTiles, this.monsterType.idleRow, this.monsterType.idleCol, this.monsterType.weakRow, this.monsterType.weakCol);
     }
     
-    this.player = this.knight;
+    this.player = this.player;
   },
 
   setup_userMove: function() {
@@ -119,7 +128,7 @@ jb.program = {
 
   do_main_game_loop: function() {
     var dtMS = jb.time.deltaTimeMS;
-    var maxDt = Math.floor(1000 * this.SIZE / Math.max(2 * this.monsters[0].speed, 2 * this.player.speed));
+    var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed);
     
     while (!this.died && dtMS > jb.k.EPSILON) {
       maxDt = Math.min(maxDt, dtMS);
@@ -131,6 +140,7 @@ jb.program = {
         this.monsters[i].update(maxDt, jb.mapTest);
         if (this.monsters[i].isAlive()) {
           this.player.checkPowerupCollision(this.monsters[i]);
+          jb.powerups.checkCollisions(this.monsters[i]);
         }
       }
 
@@ -193,7 +203,7 @@ jb.program.checkPowerupCollisions = function() {
 
 jb.program.checkMonsterCollisions = function() {
   for (var i=0; i<this.monsters.length; ++i) {
-    if (this.monsters[i].visible && !this.monsters[i].weak && this.didCollide(this.player, this.monsters[i])) {
+    if (!this.player.wantsInvisibility && this.monsters[i].visible && !this.monsters[i].weak && this.didCollide(this.player, this.monsters[i])) {
       this.gameState = this.GAME_STATE.DIED;
     }
   }
@@ -219,4 +229,30 @@ jb.program.getMoveDirection = function() {
   }
 
   return keyVal;
+};
+
+jb.program.customizeForPassword = function(password) {
+  var succeeded = false;
+
+  password = password.toLowerCase();
+  var options = jb.customization[password];
+
+  if (options) {
+    succeeded = true;
+
+    jb.assert(jb.k.playerTypes.hasOwnProperty(options.character), "Unknown player type!");
+    this.playerFrames = jb.k.playerTypes[options.character];
+
+    jb.assert(jb.k.monsterTypes.hasOwnProperty(options.monster), "Unknown monster type!");    
+    this.monsterType = jb.k.monsterTypes[options.monster];
+
+    jb.assert(jb.k.mapTypes.hasOwnProperty(options.tileSet), "Unknown dungeon type!");
+    this.tileSet = jb.k.mapTypes[options.tileSet];
+
+    options.powerup = options.powerup.toUpperCase();
+    jb.assert(jb.powerups.TYPES.hasOwnProperty(options.powerup), "Unknown powerup type!");
+    this.powerupType = jb.powerups.TYPES[options.powerup];
+  }
+
+  return succeeded;
 };

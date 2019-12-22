@@ -710,6 +710,10 @@ jb.sprites = {
     this.spriteInfo.bVisible = false;
   },
 
+  spriteCollidesWith: function(other) {
+    return this.bounds.overlap(other.bounds);
+  },
+
   spriteShow: function() {
     this.spriteInfo.bVisible = true;
   },
@@ -728,6 +732,10 @@ jb.sprites = {
     this.spriteInfo.scale.y = sy === undefined ? 1.0 : sy;
 
     if (this.bounds) {
+      // Reset dimensions to original value to prevent subsequent "scale" calls
+      // from working off the previously-scaled values.
+      this.bounds.w = this.spriteInfo.sheet.cellDx * jb.viewScale;
+      this.bounds.h = this.spriteInfo.sheet.cellDy * jb.viewScale;
       this.bounds.scale(sx, sy, this.spriteInfo.anchor.x, this.spriteInfo.anchor.y);
     }
   },
@@ -2730,7 +2738,7 @@ jb.printAtXY = function(text, x, y, anchorX, anchorY, fontSize, fontName) {
     // Measure the text at this font size.
     jb.fontInfo = "" + fontSize + "px " + jb.fontName;
     jb.ctxt.font = jb.fontInfo;
-    
+
     var textSize = jb.ctxt.measureText(text);
     jb.ctxt.fillStyle = jb.foreColor;
     jb.ctxt.strokeStyle = jb.foreColor;

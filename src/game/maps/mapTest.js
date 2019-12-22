@@ -35,6 +35,7 @@ jb.mapTest = {
     tileTypeIndices: [9, 15, 10, 18, 13, 14, 16, 23, 12, 19, 11, 24, 17, 22, 21, 20],
     collisionBounds: new jb.bounds(0, 0, 0, 0),
     collisionInfo: {isOutOfBounds: false, isBlocked: false, blockInfo: null},
+    adjacentInfo: {leftClear: false, rightClear: false, yIdeal: -1},
 
     resetCollisionInfo: function() {
         this.collisionInfo.isOutOfBounds = false;
@@ -285,6 +286,38 @@ jb.mapTest = {
         return !this.isInBounds(row, col) || this.isPlayerBlocked(row, col);
     },
 
+    areAdjacentsBlocked: function(bounds) {
+        var xCenter = bounds.l + bounds.halfWidth;
+        var yCenter = bounds.t + bounds.halfHeight;
+        var row = this.rowFromY(yCenter);
+        var col = this.colFromX(xCenter);
+        var yIdeal = this.yFromRow(row) + bounds.halfHeight;
+
+        if (Math.abs(yIdeal - yCenter) < bounds.halfHeight * jb.k.SPELL_TRIGGER_TOLERANCE) {
+            if (this.isInBounds(row, col - 1)) {
+                this.adjacentInfo.leftClear = !this.isPlayerBlocked(row, col - 1);
+            }
+            else {
+                this.adjacentInfo.leftClear = false;
+            }
+
+            if (this.isInBounds(row, col + 1)) {
+                this.adjacentInfo.rightClear = !this.isPlayerBlocked(row, col + 1);
+            }
+            else {
+                this.adjacentInfo.rightClear = false;
+            }
+
+            this.adjacentInfo.yIdeal = yIdeal;
+        }
+        else {
+            this.adjacentInfo.leftClear = false;
+            this.adjacentInfo.rightClear = false;
+        }
+
+        return this.adjacentInfo;
+    },
+
     isPlayerBlocked: function(row, col) {
         var blocked = false;
 
@@ -379,6 +412,9 @@ jb.mapTest = {
 
                     case 'g': {
                         this.monsterGoals.push({x: Math.round((origin.x + x)), y: Math.round((origin.y + y))});
+                        coinPos.row = iRow;
+                        coinPos.col = iCol;
+                        jb.messages.broadcast("spawnCoin", coinPos);
                     }
                     break;
 

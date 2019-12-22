@@ -15,6 +15,8 @@ jb.bank = {
 
     listen: function() {
         jb.messages.listen("spawnCoin", this);
+        jb.messages.listen("spawnPowerup", this);
+        jb.messages.listen("collectPowerup", this);
     },
 
     init: function(tileSheetIn, scale) {
@@ -59,6 +61,14 @@ jb.bank = {
         }
     },
 
+    spawnPowerup: function() {
+        this.count += 1;
+    },
+
+    collectPowerup: function() {
+        this.removeCoin();
+    },
+
     spawnCoin: function(pos) {
         var coin = null;
         var key = "" + pos.row;
@@ -94,11 +104,15 @@ jb.bank = {
 
         jb.messages.broadcast("coinCollected", coin);
 
+        this.removeCoin();
+    },
+
+    removeCoin: function() {
         this.count -= 1;
         if (this.count === 0) {
             jb.messages.broadcast("levelComplete");
         }
-    },
+    }
 };
 
 jb.bank.listen();

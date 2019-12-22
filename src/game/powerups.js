@@ -1,3 +1,79 @@
+blueprints.draft(
+    "fireball",
+
+    // Data
+    {
+        inFlight: false,
+        direction: "",  
+        flightTimer: 0, 
+        scale: 1,
+    },
+
+    // Actions
+    {
+        setSheet: function(sheet) {
+            this.spriteSetSheet(sheet);
+            this.scale = this.bounds.w / this.spriteInfo.sheet.cellDx;
+        },
+
+        reset: function() {
+            this.inFlight = false;
+        },
+
+        isInFlight: function() {
+            return this.inFlight;
+        },
+
+        launch: function(x, y, goingRight) {
+            this.inFlight = true;
+            this.direction = goingRight ? "right" : "left";
+            this.spriteSetState("shoot");
+            if (!goingRight) {
+                this.spriteSetScale(-1, 1);
+            }
+            else {
+                this.spriteSetScale(1, 1);
+            }
+            this.spriteMoveTo(x / this.scale, y / this.scale);
+        },
+
+        despawn: function() {
+            jb.messages.broadcast("spawnPuffParticle", jb.powerups.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight));
+            this.inFlight = false;
+        },
+
+        update: function(dtMS, map) {
+            if (this.inFlight) {
+                switch (this.direction) {
+                    case "left": {
+                        this.spriteMoveBy(-jb.k.SPEED.FIREBALL * dtMS / 1000, 0);
+                    }
+                    break;
+
+                    case "right": {
+                        this.spriteMoveBy(jb.k.SPEED.FIREBALL * dtMS / 1000, 0);
+                    }
+                    break;
+                }
+
+                var row = map.rowFromY(this.bounds.t + this.bounds.halfHeight);
+                var col = map.colFromX(this.bounds.l + this.bounds.halfWidth);
+                if (map.isPlayerBlocked(row, col) || !map.isInBounds(row, col)) {
+                    this.despawn();
+                }
+            }
+        },
+
+        draw: function(ctxt) {
+            if (this.inFlight) {
+                this.spriteDraw(ctxt);
+            }
+        },
+    },
+);
+
+blueprints.make("fireball", ["sprite"]);
+
 jb.powerups = {
     TYPES: {SWORD: "sword", SCROLL: "scroll", CLOAK: "cloak"},
     HOVER_FREQ: 0.5,
@@ -7,6 +83,10 @@ jb.powerups = {
     hoverHeight: 0,
     hoverTime: 0,
     cache: [],
+    type: "",
+    fireballs: [null, null],
+    particleInfo: {x: -1, y: -1, text: ""},
+    map: null,
 
     // Inner class
     info: function(row, col, type, tileRow, tileCol) {
@@ -22,12 +102,14 @@ jb.powerups = {
         this.wasBlinkOn = false;
     },
 
-    init: function(tileSheet, scale) {
+    init: function(tileSheet, scale, powerupType, fxSheet, map) {
         this.tileSheet = tileSheet;
         this.scale = scale;
+        this.type = powerupType;
+        this.map = map;
 
-        this.info.prototype.update = function(dtMS, ownerBounds, xScale) {
-            jb.powerups.updatePowerup(this, dtMS, ownerBounds, xScale);
+        this.info.prototype.update = function(dtMS, ownerBounds, xScale, map) {
+            jb.powerups.updatePowerup(this, dtMS, ownerBounds, xScale, map);
         };
 
         this.info.prototype.preRender = function(ownerBounds) {
@@ -51,10 +133,48 @@ jb.powerups = {
             jb.powerups.radialCollisionWith(this, owner, other);
         };
 
+        var states = {
+            shoot: jb.sprites.createState(jb.k.fireballFrames, jb.k.IDLE_DT, true, null),
+        }
+        for (var i=0; i<this.fireballs.length; ++i) {
+            var it = blueprints.build("fireball");
+            it.setSheet(fxSheet);
+            it.spriteSetStates(states);
+            it.spriteSetAnchor(0.5, 0.5);
+            this.fireballs[i] = it;
+        }
+
         jb.messages.listen("spawnPowerup", this);
         jb.messages.listen("collectPowerup", this);
         jb.messages.listen("dropPowerup", this);
         this.cache.length = 0;
+    },
+
+    getParticleInfo: function(x, y, text) {
+        this.particleInfo.x = x;
+        this.particleInfo.y = y;
+        this.particleInfo.text = text;
+
+        return this.particleInfo;
+    },
+
+    checkCollisions: function(target) {
+        // TODO: for collision between target and fireballs.
+        var collided = false;
+
+        for (var i=0; i<this.fireballs.length; ++i) {
+            var fb = this.fireballs[i];
+            if (fb.isInFlight()) {
+                if (fb.spriteCollidesWith(target)) {
+                    collided = true;
+                    jb.messages.send("hitPowerup", target);
+                    fb.despawn();
+                    break;
+                }
+            }
+        }
+
+        return collided;
     },
 
     updatePowerupBlink: function(powerup) {
@@ -88,9 +208,9 @@ jb.powerups = {
     drawPowerup: function(ctxt, powerup, xScale) {
         jb.assert(powerup, "Can't draw power-up!");
 
+        this.updatePowerupBlink(powerup)
         switch(powerup.type) {
             case this.TYPES.SWORD: {
-                this.updatePowerupBlink(powerup)
                 if (powerup.visible) {
                     this.tileSheet.draw(ctxt, powerup.tileRow, powerup.tileCol, powerup.x, powerup.y, 0.5, 0.5, xScale);
                 }
@@ -100,18 +220,17 @@ jb.powerups = {
             break;
 
             case this.TYPES.SCROLL: {
-
+                // Fireballs are drawn by the owning player.
             }
             break;
 
             case this.TYPES.CLOAK: {
-
             }
             break;
         }
     },
 
-    updatePowerup: function(powerup, dtMS, ownerBounds, xScale) {
+    updatePowerup: function(powerup, dtMS, ownerBounds, xScale, map) {
         jb.assert(powerup && ownerBounds, "Can't update power-up!");
 
         switch(powerup.type) {
@@ -132,15 +251,53 @@ jb.powerups = {
             break;
 
             case this.TYPES.SCROLL: {
+                powerup.timer += dtMS * 0.001;
+                if (this.noFireballsInFlight()) {
+                    if (powerup.timer > jb.k.POWERUP_LIFETIME) {
+                        jb.messages.broadcast("dropPowerup", powerup);
+                    }
+                    else {
+                        // TODO: can we launch our fireballs?
+                        var blockInfo = map.areAdjacentsBlocked(ownerBounds);
 
+                        if (blockInfo.leftClear) {
+                            this.fireballs[0].launch(ownerBounds.l + ownerBounds.halfWidth, blockInfo.yIdeal, false);
+                        }
+
+                        if (blockInfo.rightClear) {
+                            this.fireballs[1].launch(ownerBounds.l + ownerBounds.halfWidth, blockInfo.yIdeal, true);
+                        }
+                    }
+                }
+                else {
+                    for (var i=0; i<this.fireballs.length; ++i) {
+                        this.fireballs[i].update(dtMS, map);
+                    }
+                }
             }
             break;
 
             case this.TYPES.CLOAK: {
-
+                powerup.timer += dtMS * 0.001;
+                if (powerup.timer > jb.k.POWERUP_LIFETIME) {
+                    jb.messages.broadcast("dropPowerup", powerup);
+                }
             }
             break;
         }
+    },
+
+    noFireballsInFlight: function() {
+        var noneInFlight = true;
+
+        for (var i=0; i<this.fireballs.length; ++i) {
+            if (this.fireballs[i].isInFlight()) {
+                noneInFlight = false;
+                break;
+            }
+        }
+
+        return noneInFlight;
     },
 
     preRenderPowerup: function(powerup, ownerBounds) {
@@ -224,7 +381,7 @@ jb.powerups = {
     radialCollisionWith: function(powerup, owner, other) {
         jb.assert(powerup && other, "Invalid collision objects!");
 
-        if (powerup.type !== this.TYPES.CLOAK) {
+        if (powerup.type === this.TYPES.SWORD) {
             var ownerCenterX = owner.bounds.l + owner.bounds.halfWidth;
             var ownerCenterY = owner.bounds.t + owner.bounds.halfHeight;
 
@@ -235,7 +392,7 @@ jb.powerups = {
             dx = other.bounds.l + other.bounds.halfWidth - ownerCenterX;
             dy = other.bounds.t + other.bounds.halfHeight - ownerCenterY;
 
-            if ((dx * dx + dy * dy) < powerUpRadSq * jb.k.COLLISION_FUDGE) {
+            if ((dx * dx + dy * dy) < powerUpRadSq * jb.k.COLLISION_FUDGE * jb.k.COLLISION_FUDGE) {
                 jb.messages.send("hitPowerup", other, powerup);
             }
         }
@@ -267,30 +424,32 @@ jb.powerups = {
                 this.tileSheet.draw(ctxt, powerup.tileRow, powerup.tileCol, x, y, 0, 0);
             }
         }
+
+        for (var i=0; i<this.fireballs.length; ++i) {
+            if (this.fireballs[i].isInFlight()) {
+                this.fireballs[i].draw(ctxt);
+            }
+        }
     },
 
     spawnPowerup: function(info) {
-        var powerupType = null;
         var tileRow = -1;
         var tileCol = -1;
         
-        switch (info.type) {
-            case 1: {
-                powerupType = this.TYPES.SWORD;
+        switch (this.type) {
+            case this.TYPES.SWORD: {
                 tileRow = 9;
                 tileCol = 12;
             }
             break;
 
-            case 2: {
-                powerupType = this.TYPES.SCROLL;
+            case this.TYPES.SCROLL: {
                 tileRow = 6;
                 tileCol = 3;
             }
             break;
 
-            case 3: {
-                powerupType = this.TYPES.CLOAK;
+            case this.TYPES.CLOAK: {
                 tileRow = 11;
                 tileCol = 9;
             }
@@ -302,7 +461,7 @@ jb.powerups = {
             break;
         }
 
-        var newInfo = new this.info(info.row, info.col, powerupType, tileRow, tileCol);
+        var newInfo = new this.info(info.row, info.col, this.type, tileRow, tileCol);
         this.cache.push(newInfo);
     }
 };
