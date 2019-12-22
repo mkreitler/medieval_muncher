@@ -628,17 +628,29 @@ blueprints.mixins["body2d"] = jb.body2d;
 //     {
 //       idle:[0],
 //       run: [1, 2]
+//       event: "eventName" (optional)
 //     }
 jb.sprites = {
   allSprites: [],
-  debug: true,
+  debug: false,
 
-  createState: function(frames, frameDt, bReset, events) {
-    return {frames: frames || [], // array of {row: n, col: m} objects
-            frameDt: frameDt || 0,
-            bReset: bReset || true,
-            frameIndex: 0,
-            events: events || null};
+  createState: function(frames, frameDt, bReset) {
+    var newState = {frames: frames || [], // array of {row: n, col: m} objects
+                    frameDt: frameDt || 0,
+                    bReset: bReset || true,
+                    frameIndex: 0,
+                    events: []};
+
+    for (var i=0; i<frames.length; ++i) {
+      if (frames[i].hasOwnProperty("event")) {
+        newState.events.push(frames[i].event);
+      }
+      else {
+        newState.events.push(null);
+      }
+    }
+
+    return newState;
   },
 
   makeInstance: function(instance) {
@@ -727,6 +739,10 @@ jb.sprites = {
     }
   },
 
+  spriteGetCurrentFrameCount: function() {
+    return this.spriteInfo.state && this.spriteInfo.state.frames ? this.spriteInfo.state.frames.length : 0;
+  },
+
   spriteSetStates: function(states) {
     this.spriteInfo.states = states;
   },
@@ -782,6 +798,10 @@ jb.sprites = {
   spriteResetTimer: function() {
     this.spriteInfo.frameTime = 0.0;
     this.spriteInfo.lastFrame = -1;
+    for (var i=0; i<this.spriteInfo.states.length; ++i) {
+      var state = this.spriteInfo.states[i];
+      state.frameIndex = 0;
+    }
   },
 
   spriteSetAlpha: function(newAlpha) {
@@ -802,8 +822,11 @@ jb.sprites = {
           curState.frameIndex += 1;
           curState.frameIndex %= curState.frames.length;
 
-          if (curState.events && curState.events[curState.frameIndex] && curState.lastFrame !== curState.frameIndex) {
-            curState.events[curState.frameIndex](this);
+          if (curState.events && curState.events.length > curState.frameIndex && curState.events[curState.frameIndex] && curState.lastFrame !== curState.frameIndex) {
+            var eventName = curState.events[curState.frameIndex];
+            if (typeof(this[eventName]) === "function") {
+              this[eventName](curState);
+            }
           }
 
           curState.lastFrame = curState.frameIndex;
@@ -1733,7 +1756,16 @@ jb.messages = {
 
     this.listenersToAdd.length = 0;
     this.listenersToRemove.length = 0;
-},
+  },
+
+  send: function(message, target, argument) {
+    var listeners = this.registry[message];
+    if (listeners && listeners.indexOf(target) >= 0) {
+      if (target[message] && typeof(target[message]) === 'function') {
+        target[message](argument);
+      }
+    }
+  },
 
   broadcast: function(message, argument) {
     var listeners = this.registry[message];
@@ -2682,6 +2714,28 @@ jb.measureOpenTypeText = function(text) {
 };
 jb.print = function(text) {
     jb.printAt(text, 0, 0);
+};
+jb.printAtXY = function(text, x, y, anchorX, anchorY) {
+  anchorX = anchorX || 0;
+  anchorY = anchorY || 0;
+
+  if (jb.openTypeFont) {
+    jb.drawOpenTypeFontAt(jb.ctxt, text, x, y, jb.foreColor, jb.foreColor, anchorX, anchorY);
+  }
+  else {
+    // Measure the text at this font size.
+    var textSize = jb.ctxt.measureText(text);
+    jb.ctxt.save();
+    jb.ctxt.fillStyle = jb.foreColor;
+    jb.ctxt.strokeStyle = jb.foreColor;
+
+    x = Math.round(x - anchorX * textSize.width);
+    y = Math.round(y - anchorY * jb.fontSize);
+    jb.ctxt.fillText(text, x, y);
+    jb.ctxt.strokeText(text, x, y);
+
+    jb.ctxt.restore();
+  }
 };
 jb.printAt = function(text, newRow, newCol) {
     var x, y, cr, path;

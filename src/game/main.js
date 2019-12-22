@@ -9,7 +9,7 @@ jb.program = {
   SCREEN_HEIGHT: 480,
   COLUMNS: 40,
   ANIM_DT: 33,
-  IMAGES: {creatures: null, world: null, background: null, items: null},
+  IMAGES: {creatures: null, world: null, background: null, items: null, fx: null},
   GAME_STATE: {UNKNOWN: -1, PLAYING: 0, DIED: 1, INTRO: 2, WON: 3},
 
   // VARIABLES ///////////////////////////////////////////////////////////////////
@@ -17,6 +17,7 @@ jb.program = {
   worldTiles: null,
   creatureTiles: null,
   itemTiles: null,
+  fxTiles: null,
   player: null,
   knight: null,
   origin: {x: -1, y: -1},
@@ -25,6 +26,7 @@ jb.program = {
   monsters: [],
   gameState: -1,
   monsterType: {idleRow: -1, idleCol: -1, weakRow: -1, weakCol: -1},
+  level: 1,
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -46,6 +48,7 @@ jb.program = {
     this.IMAGES.world = resources.loadImage("oryx_16bit_fantasy_world_trans.png");
     this.IMAGES.background = resources.loadImage("oryx_16bit_background_trans.png");
     this.IMAGES.items = resources.loadImage("oryx_16bit_fantasy_items_trans.png");
+    this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
     // TODO: make this map-dependent.
     this.monsterType.idleRow = 20;
@@ -64,10 +67,14 @@ jb.program = {
     this.worldTiles = new jb.tileSheetObj(this.IMAGES.world, this.SIZE, this.SIZE);
     this.creatureTiles = new jb.tileSheetObj(this.IMAGES.creatures, this.SIZE, this.SIZE);
     this.itemTiles = new jb.tileSheetObj(this.IMAGES.items, this.SMALL_SIZE, this.SMALL_SIZE);
+    this.fxTiles = new jb.tileSheetObj(this.IMAGES.fx, this.SIZE, this.SIZE);
+
     jb.setWebFont("VT323");
     jb.setColumns(this.COLUMNS);
     jb.bank.init(this.itemTiles, this.SCALE);
     jb.powerups.init(this.itemTiles, this.SCALE);
+    jb.particles.init(this.fxTiles, this.SCALE);
+
     jb.messages.listen("levelComplete", this);
 
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
@@ -93,16 +100,14 @@ jb.program = {
   },
 
   setup_userMove: function() {
-    jb.printAt("Medieval Muncher", jb.rows / 2 + 1, Math.floor((this.COLUMNS - "Medieval Muncher".length + 2) * 0.5));
+    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
 
     this.player.reset(jb.mapTest, this.SIZE);
 
     this.gameState = this.GAME_STATE.PLAYING;
 
     for (var i=0; i<this.monsters.length; ++i) {
-      var monsterStart = jb.mapTest.getMonsterStart();
-      this.monsters[i].reset(monsterStart.x, monsterStart.y);
-      this.monsters[i].loiter(jb.mapTest);
+      this.monsters[i].start(jb.mapTest, this.level);
     }
 
     jb.listenForTap();
@@ -124,10 +129,15 @@ jb.program = {
 
       for (var i=0; i<this.monsters.length; ++i) {
         this.monsters[i].update(maxDt, jb.mapTest);
+        if (this.monsters[i].isAlive()) {
+          this.player.checkPowerupCollision(this.monsters[i]);
+        }
       }
 
       jb.powerups.update(maxDt);
       this.checkPowerupCollisions();
+
+      jb.particles.update(maxDt);
 
       this.checkMonsterCollisions();
       jb.bank.collide(this.player.getRow(), this.player.getCol());
@@ -143,12 +153,13 @@ jb.program = {
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].draw(jb.ctxt);
     }
-
+    jb.particles.draw(jb.ctxt);
+    
     jb.while(this.gameState === this.GAME_STATE.PLAYING);
   },
 
   do_gameOver: function() {
-    jb.printAt("Game Over", jb.rows / 2 + 1, Math.floor((this.COLUMNS - "Game Over".length + 2) * 0.5) + 1);
+    jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
     jb.while(true);
   },
 };
@@ -182,7 +193,7 @@ jb.program.checkPowerupCollisions = function() {
 
 jb.program.checkMonsterCollisions = function() {
   for (var i=0; i<this.monsters.length; ++i) {
-    if (this.didCollide(this.player, this.monsters[i])) {
+    if (this.monsters[i].visible && !this.monsters[i].weak && this.didCollide(this.player, this.monsters[i])) {
       this.gameState = this.GAME_STATE.DIED;
     }
   }

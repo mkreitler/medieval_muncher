@@ -48,6 +48,7 @@ blueprints.draft(
 
             this.powerup = powerup;
             jb.messages.broadcast("powerupStart", this.powerup);
+            console.log("collectPowerup");
         },
 
         dropPowerup: function(powerup) {
@@ -68,6 +69,12 @@ blueprints.draft(
 
             if (this.powerup) {
                 this.powerup.update(dtMS, this.bounds, this.spriteInfo.scale.x);
+            }
+        },
+
+        checkPowerupCollision: function(other) {
+            if (this.powerup) {
+                this.powerup.checkCollisionWith(this, other);
             }
         },
 

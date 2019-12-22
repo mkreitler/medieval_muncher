@@ -47,6 +47,10 @@ jb.powerups = {
             this.wasBlinkOn = false;
         };
 
+        this.info.prototype.checkCollisionWith = function(owner, other) {
+            jb.powerups.radialCollisionWith(this, owner, other);
+        };
+
         jb.messages.listen("spawnPowerup", this);
         jb.messages.listen("collectPowerup", this);
         jb.messages.listen("dropPowerup", this);
@@ -215,6 +219,26 @@ jb.powerups = {
         }
 
         return powerupHit;
+    },
+
+    radialCollisionWith: function(powerup, owner, other) {
+        jb.assert(powerup && other, "Invalid collision objects!");
+
+        if (powerup.type !== this.TYPES.CLOAK) {
+            var ownerCenterX = owner.bounds.l + owner.bounds.halfWidth;
+            var ownerCenterY = owner.bounds.t + owner.bounds.halfHeight;
+
+            var dx = powerup.x - ownerCenterX + this.tileSheet.cellDx / 2 * this.scale;
+            var dy = powerup.y - ownerCenterY + this.tileSheet.cellDy / 2 * this.scale;
+            var powerUpRadSq = dx * dx + dy * dy;
+
+            dx = other.bounds.l + other.bounds.halfWidth - ownerCenterX;
+            dy = other.bounds.t + other.bounds.halfHeight - ownerCenterY;
+
+            if ((dx * dx + dy * dy) < powerUpRadSq * jb.k.COLLISION_FUDGE) {
+                jb.messages.send("hitPowerup", other, powerup);
+            }
+        }
     },
 
     collectPowerup: function(powerup) {

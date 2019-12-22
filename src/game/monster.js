@@ -12,11 +12,37 @@ blueprints.draft(
         pattern: null,
         iHuntIndex: -1,
         visible: true,
+        timer: 0,
+        baseSpeed: 0,
+        level: 0,
+        startPoint: null,
+        deathPoint: {x: -1, y: -1},
     },
 
     // Actions
     {
+        start: function(map, level) {
+            if (!this.startPoint) {
+                this.startPoint = map.getMonsterStart();
+            }
+
+            this.heal();
+            this.reset(this.startPoint.x, this.startPoint.y);
+            this.loiter(jb.mapTest);
+            this.spriteSetAlpha(1.0);
+            this.level = level;
+        },
+
+        isAlive: function() {
+            return this.moveState !== this.msDie;
+        },
+
         update: function(dtMS, map) {
+            this.speed = this.baseSpeed * (1 - (2 - this.level) / 10);
+            if (this.weak) {
+                this.speed *= jb.k.WEAK_SPEED_FACTOR;
+            }
+
             this.body2dUpdate(dtMS);
             this.spriteUpdate(dtMS);
             map.fadeSprite(this);
@@ -31,6 +57,7 @@ blueprints.draft(
             jb.messages.listen("powerupBlinkOff", this);
             jb.messages.listen("powerupStart", this);
             jb.messages.listen("powerupStop", this);
+            jb.messages.listen("hitPowerup", this);
         },
 
         reset: function(x, y) {
@@ -39,25 +66,51 @@ blueprints.draft(
             this.goal.y = y;
             this.iHuntIndex = 0;
             this.visible = true;
-            this.weak = false;
+            this.heal();
         },
 
-        powerupStart: function() {
+        hitPowerup: function(powerup) {
+            this.die();
+        },
+
+        weaken: function() {
             this.weak = true;
             this.move();
         },
 
-        powerupStop: function() {
+        heal: function() {
             this.weak = false;
             this.move();
         },
 
+        powerupStart: function() {
+            this.weaken();
+        },
+
+        powerupStop: function() {
+            this.heal();
+        },
+
         powerupBlinkOn: function() {
-            this.visible = true;
+            if (this.isAlive() && this.weak) {
+                this.visible = true;
+            }
         },
 
         powerupBlinkOff: function() {
-            this.visible = false;
+            if (this.isAlive() && this.weak) {
+                this.visible = false;
+            }
+        },
+
+        die: function() {
+            this.timer = 0;
+            this.spriteSetAlpha(jb.k.DEATH_ALPHA);
+            this.moveState = this.msDie;
+            this.deathPoint.x = this.bounds.l;
+            this.deathPoint.y = this.bounds.t;
+
+            jb.messages.broadcast("spawnPuffParticle", {x: this.bounds.l + this.bounds.halfWidth, y: this.bounds.t + this.bounds.halfHeight});
         },
 
         hunt: function(map) {
@@ -110,6 +163,7 @@ blueprints.draft(
             this.moveDir = Math.random() < 0.5 ? "left" : "right";
             this.moveState = this.msLoiter;
             this.moveClock = this.LOITER_TIME_MS;
+            this.visible = true;
             map.getMonsterGoal(this.bounds, this.goal);
         },
 
@@ -138,6 +192,24 @@ blueprints.draft(
                     }
                 }
                 break;
+            }
+        },
+
+        msDie: function(dtMS, map) {
+            this.timer += dtMS * 0.001;
+
+            var param = this.timer / jb.k.MONSTER_RESPAWN_TIME;
+            param = Math.min(1.0, Math.max(0, param));
+
+            var scale = this.bounds.w / this.spriteInfo.sheet.cellDx;
+
+            this.spriteMoveTo(Math.floor(this.startPoint.x * param + this.deathPoint.x / scale * (1.0 - param)),
+                              Math.floor(this.startPoint.y * param + this.deathPoint.y / scale * (1.0 - param)));
+
+            if (this.timer > jb.k.MONSTER_RESPAWN_TIME) {
+                this.heal();
+                this.spriteMoveTo(this.startPoint.x, this.startPoint.y);
+                this.start(map, this.level);
             }
         },
 
@@ -327,11 +399,18 @@ jb.monster = {
             move_weak: jb.sprites.createState(this.frames["move_weak"], jb.k.ANIM_DT, false, null),
         };
 
-        it.speed = this.SPEED;
+        it.baseSpeed = this.SPEED;
         it.id = this.iSpawn++ % jb.k.NUM_MONSTERS;
         it.pattern = this.huntPatterns[it.id % this.huntPatterns.length];
         it.spriteSetStates(states);
         it.spriteSetState("move");
+
+        it.oldSetAlpha = it.spriteSetAlpha;
+        it.spriteSetAlpha = function(alpha) {
+            if (it.isAlive()) {
+                it.oldSetAlpha(alpha);
+            }
+        };
 
         return it;
     }
