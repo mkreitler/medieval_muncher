@@ -17,10 +17,12 @@ jb.program = {
   origin: {x: -1, y: -1},
   tileSet: null,
   playerFrames: null,
+  input: "",
   directions: ["up", "right", "down", "left"],
   monsters: [],
   gameState: -1,
   level: 1,
+  passwordEntered: false,
   maxSpeed: 0,
   minSize: Number.MAX_VALUE,
   sheets: {},
@@ -65,16 +67,49 @@ jb.program = {
     this.IMAGES.items = resources.loadImage("oryx_16bit_fantasy_items_trans.png");
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
-    // TODO: make this map-dependent.
-    // jb.assert(this.customizeForPassword("stalking"), "Customization failed!");
-    // jb.assert(this.customizeForPassword("slay bells"), "Customization failed!");
-    jb.assert(this.customizeForPassword("santa claws"), "Customization failed!");
-
     resources.loadWebFonts(["VT323"]);
   },
 
   do_waitForResourceLoad: function() {
     jb.until(resources.loadComplete());
+  },
+
+  do_checkPassword: function() {
+    jb.clear();
+
+    if (!this.passwordEntered) {
+      jb.setForeColor("white");
+      jb.setColumns(jb.k.COLUMNS_LARGE);
+      jb.printAtXY("Enter Password", jb.canvas.width / 2, jb.canvas.height / 3, 0.5, 0.5);
+
+      jb.setForeColor("yellow");
+      jb.setColumns(jb.k.COLUMNS_SMALL);
+      this.input = jb.input;
+      if (this.input && this.input.length > 0) {
+        jb.printAtXY(this.input, jb.canvas.width / 2, jb.canvas.height * 2 / 3, 0.5, 0.5);
+      }
+    }
+
+    jb.while(!this.passworedEntered && !jb.isKeyDown("return"));
+  },
+
+  verifyPassword: function() {
+    var passwordAccepted = false;
+
+    for (var key in jb.customization) {
+      if (key.toLowerCase() === this.input.toLowerCase()) {
+        passwordAccepted = true;
+      }
+    }
+
+    if (!passwordAccepted) {
+      // TODO: play a buzzer to indicate failure.
+      jb.clearInput();
+      jb.goto("do_checkPassword");
+    }
+    else {
+      jb.assert(this.customizeForPassword(jb.input.toLowerCase()), "Customization failed!");
+    }
   },
 
   initialize: function() {
@@ -91,6 +126,7 @@ jb.program = {
     }
 
     jb.setWebFont("VT323");
+    jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.bank.init(this.sheets.itemTiles, this.SCALE);
     jb.monster.init();
@@ -234,6 +270,7 @@ jb.program = {
 
   do_deathMessage: function() {
     jb.clear();
+    jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_SMALL);
     jb.printAtXY("Press 'enter' to play again", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
     jb.setColumns(jb.k.COLUMNS_LARGE);

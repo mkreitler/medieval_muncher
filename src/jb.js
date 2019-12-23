@@ -2883,6 +2883,11 @@ jb.reset = function() {
   jb.bInterrupt = false;
 };
 
+jb.clearInput = function() {
+  jb.input = "";
+  jb.bWantsNewInput = true;
+},
+
 jb.onPress = function(e) {
     var charCode = e.which || e.keyCode,
         specialCode = jb.special.last;
@@ -2910,8 +2915,12 @@ jb.onPress = function(e) {
             jb.clearBlink();
             jb.input += " ";
         }
+        else if (specialCode === "backspace" && jb.input.length > 0) {
+          jb.input = jb.input.substring(0, jb.input.length - 1);
+          jb.clearBlink();
+        }
     }
-    else {
+    else if (jb.codes["" + charCode] === undefined) {
         // 'Normal' key.
         jb.got = String.fromCharCode(charCode);
         
@@ -3058,6 +3067,8 @@ jb.onUp = function(e) {
         // 'Normal' key.
         jb.normal.down[String.fromCharCode(jb.lastCode)] = false;
     }
+
+    jb.onPress(e);
 };
 
 jb.updateKeys = function() {
@@ -3494,7 +3505,6 @@ jb.addTouchButton = function(id, left, top, width, height) {
 
 document.addEventListener("keydown", jb.onDown, true);
 document.addEventListener("keyup", jb.onUp, true);
-document.addEventListener("keypress", jb.onPress, true);
 
 window.addEventListener("mousedown", jb.mouseDown, true);
 window.addEventListener("mouseup", jb.mouseUp, true);
