@@ -49,5 +49,5 @@ jb.k = {
         "demons": {idleRow: 10, idleCol: 8, weakRow: 10, weakCol: 7},
       },
 
-      fireballFrames: [{row: 18, col: 0}],
+      fireballFrames: [{row: 14, col: 0}],
     };

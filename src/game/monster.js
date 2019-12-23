@@ -284,6 +284,8 @@ blueprints.draft(
         },
 
         moveLaterally: function(dtMS, map) {
+            var oldX = this.bounds.l;
+
             this.moveDir = this.goal.x - this.bounds.l < 0 ? "left" : "right";
 
             var timeToGoal = Math.abs(this.goal.x - this.bounds.l) / this.speed;
@@ -303,6 +305,12 @@ blueprints.draft(
                 }
 
                 timeRemaining = Math.floor(dtMS - timeToGoal * 1000);
+
+                if ((this.goal.x - this.bounds.l) * (this.goal.x - oldX) <= 0) {
+                    // Overshot.
+                    timeRemaining = 0;
+                }
+
                 if (timeRemaining < jb.k.EPSLION) {
                     timeRemaining = 0;
                 }
@@ -312,6 +320,8 @@ blueprints.draft(
         },
 
         moveVertically: function(dtMS, map) {
+            var oldY = this.bounds.t;
+
             this.moveDir = this.goal.y - this.bounds.t < 0 ? "up" : "down";
 
             var timeToGoal = Math.abs(this.goal.y - this.bounds.t) / this.speed;
@@ -329,6 +339,12 @@ blueprints.draft(
                 }
 
                 timeRemaining = Math.floor(dtMS - timeToGoal * 1000);
+
+                if ((this.goal.y - this.bounds.t) * (this.goal.y - oldY) <= 0) {
+                    // Overshot.
+                    timeRemaining = 0;
+                }
+
                 if (timeRemaining < jb.k.EPSLION) {
                     timeRemaining = 0;
                 }

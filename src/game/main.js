@@ -128,7 +128,7 @@ jb.program = {
 
   do_main_game_loop: function() {
     var dtMS = jb.time.deltaTimeMS;
-    var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed);
+    var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed * (1 - (this.level - 1) / 10));
     
     while (!this.died && dtMS > jb.k.EPSILON) {
       maxDt = Math.min(maxDt, dtMS);
@@ -252,6 +252,10 @@ jb.program.customizeForPassword = function(password) {
     options.powerup = options.powerup.toUpperCase();
     jb.assert(jb.powerups.TYPES.hasOwnProperty(options.powerup), "Unknown powerup type!");
     this.powerupType = jb.powerups.TYPES[options.powerup];
+
+    jb.assert(options.hasOwnProperty("level"), "No difficulty level defined!");
+    this.level = Math.max(1, parseInt(options.level));
+    console.log(">>> Setting difficulty level " + this.level);
   }
 
   return succeeded;
