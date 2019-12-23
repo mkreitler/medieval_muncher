@@ -84,6 +84,7 @@ jb.program = {
     jb.monster.init();
     jb.powerups.init(this.sheets.itemTiles, this.SCALE, this.powerupType, this.sheets.fxTiles, jb.mapTest);
     jb.particles.init(this.sheets.fxTiles, this.SCALE);
+    jb.treasures.init(this.sheets.itemTiles, jb.mapTest);
 
     jb.messages.listen("levelComplete", this);
 
@@ -94,9 +95,6 @@ jb.program = {
   },
   
   buildLevel: function() {
-    jb.bank.reset();
-    jb.powerups.reset();
-
     jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.sheets.worldTiles, this.tileSet.row, this.tileSet.doorRow, this.tileSet.doorCol);
 
     this.player = jb.player.create(this.sheets.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE, this.playerFrames);
@@ -111,7 +109,7 @@ jb.program = {
   setup_userMove: function() {
     jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
 
-    this.player.reset(jb.mapTest, this.SIZE);
+    this.reset();
 
     this.gameState = this.GAME_STATE.PLAYING;
 
@@ -135,6 +133,7 @@ jb.program = {
 
       var moveDir = this.getMoveDirection();
       this.player.update(moveDir, maxDt, jb.mapTest);
+      jb.treasures.update(maxDt);
 
       for (var i=0; i<this.monsters.length; ++i) {
         this.monsters[i].update(maxDt, jb.mapTest);
@@ -145,11 +144,11 @@ jb.program = {
       }
 
       jb.powerups.update(maxDt);
-      this.checkPowerupCollisions();
-
       jb.particles.update(maxDt);
 
+      this.checkPowerupCollisions();
       this.checkMonsterCollisions();
+      jb.treasures.checkCollision(this.player);
       jb.bank.collide(this.player.getRow(), this.player.getCol());
 
       dtMS -= maxDt;
@@ -159,6 +158,7 @@ jb.program = {
     jb.mapTest.draw(jb.ctxt, this.origin);
     jb.bank.draw(jb.ctxt, jb.mapTest);
     jb.powerups.draw(jb.ctxt, jb.mapTest);
+    jb.treasures.draw(jb.ctxt);
     this.player.draw(jb.ctxt);
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].draw(jb.ctxt);
@@ -166,6 +166,10 @@ jb.program = {
     jb.particles.draw(jb.ctxt);
     
     jb.while(this.gameState === this.GAME_STATE.PLAYING);
+  },
+
+  cleanUp: function() {
+    jb.bank.cleanUp();
   },
 
   do_gameOver: function() {
@@ -255,8 +259,15 @@ jb.program.customizeForPassword = function(password) {
 
     jb.assert(options.hasOwnProperty("level"), "No difficulty level defined!");
     this.level = Math.max(1, parseInt(options.level));
-    console.log(">>> Setting difficulty level " + this.level);
   }
 
   return succeeded;
+};
+
+jb.program.reset = function() {
+  jb.bank.reset();
+  jb.powerups.reset();
+  jb.treasures.reset();
+  jb.monster.reset();
+  this.player.reset(jb.mapTest, this.SIZE);
 };

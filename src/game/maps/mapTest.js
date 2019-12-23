@@ -36,6 +36,32 @@ jb.mapTest = {
     collisionBounds: new jb.bounds(0, 0, 0, 0),
     collisionInfo: {isOutOfBounds: false, isBlocked: false, blockInfo: null},
     adjacentInfo: {leftClear: false, rightClear: false, yIdeal: -1},
+    treasureSite: {x: -1, y: -1},
+
+    getTreasureSpawnSite: function() {
+        var candidates = [];
+        var site = null;
+
+        for (var i=0; i<this.monsterGoals.length; ++i) {
+            var goal = this.monsterGoals[i];
+            var row = this.rowFromY(goal.y);
+            var col = this.colFromX(goal.x);
+
+            // A little filthy, calling the bank directly...
+            if (!jb.bank.isCoinAt(row, col)) {
+                candidates.push(i);
+            }
+        }
+
+        if (candidates.length > 0) {
+            var index = jb.popRandom(candidates);
+            this.treasureSite.x = (this.monsterGoals[index].x + this.tileSize * this.scale / 2) / this.scale;
+            this.treasureSite.y = (this.monsterGoals[index].y + this.tileSize * this.scale / 2) / this.scale;
+            site = this.treasureSite;
+        }
+
+        return site;
+    },
 
     resetCollisionInfo: function() {
         this.collisionInfo.isOutOfBounds = false;

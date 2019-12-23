@@ -1416,6 +1416,14 @@ jb.randomizeArray = function(array) {
   }
 };
 
+jb.popRandom = function(array, preserveOrder) {
+  var element = array[Math.floor(Math.random() * array.length)];
+
+  jb.removeFromArray(array, element, preserveOrder);
+
+  return element;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // requestAnimationFrame
 ///////////////////////////////////////////////////////////////////////////////
@@ -1767,12 +1775,15 @@ jb.messages = {
   },
 
   send: function(message, target, argument) {
+    var result = null;
     var listeners = this.registry[message];
     if (listeners && listeners.indexOf(target) >= 0) {
       if (target[message] && typeof(target[message]) === 'function') {
-        target[message](argument);
+        result = target[message](argument);
       }
     }
+
+    return result;
   },
 
   broadcast: function(message, argument) {

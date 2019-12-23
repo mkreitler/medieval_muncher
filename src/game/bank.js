@@ -11,12 +11,15 @@ jb.bank = {
     display: {},
     tileSheet: null,
     localScale: 0.5,
-    count: 0,
+    coinCount: 0,
+    powerupCount: 0,
+    score: 0,
 
     listen: function() {
         jb.messages.listen("spawnCoin", this);
         jb.messages.listen("spawnPowerup", this);
         jb.messages.listen("collectPowerup", this);
+        jb.messages.listen("scorePoints", this);
     },
 
     init: function(tileSheetIn, scale) {
@@ -26,6 +29,11 @@ jb.bank = {
     },
 
     reset: function() {
+        // Nothing to do here, yet...
+        this.score = 0;
+    },
+
+    cleanUp: function() {
         for (var key in this.display) {
             if (this.display[key]) {
                 while (this.display[key].length > 0) {
@@ -34,7 +42,8 @@ jb.bank = {
             }
         }
 
-        this.count = 0;
+        this.coinCount = 0;
+        this.powerupCount = 0;
     },
 
     collide: function(row, col) {
@@ -61,12 +70,34 @@ jb.bank = {
         }
     },
 
+    isCoinAt: function(row, col) {
+        var isCoin = false;
+        var key = "" + row;
+        var coinsInRow = this.display[key];
+
+        if (coinsInRow) {
+            for (var i=0; i<coinsInRow.length; ++i) {
+                if (coinsInRow[i].col === col) {
+                    isCoin = true;
+                    break;
+                }
+            }
+        }
+
+        return isCoin;
+    },
+
+    scorePoints: function(value) {
+        this.score += value;
+    },
+
     spawnPowerup: function() {
-        this.count += 1;
+        this.powerupCount += 1;
     },
 
     collectPowerup: function() {
-        this.removeCoin();
+        this.powerupCount -= 1;
+        this.checkForLevelEnd();
     },
 
     spawnCoin: function(pos) {
@@ -88,7 +119,7 @@ jb.bank = {
             this.display[key] = [];
         }
 
-        this.count += 1;
+        this.coinCount += 1;
         this.display[key].push(coin);
 
         return coin;
@@ -104,12 +135,13 @@ jb.bank = {
 
         jb.messages.broadcast("coinCollected", coin);
 
-        this.removeCoin();
+        this.score += 1;
+        this.coinCount-= 1;
+        this.checkForLevelEnd();
     },
 
-    removeCoin: function() {
-        this.count -= 1;
-        if (this.count === 0) {
+    checkForLevelEnd: function() {
+        if (this.coinCount === 0 && this.powerupCount === 0) {
             jb.messages.broadcast("levelComplete");
         }
     }

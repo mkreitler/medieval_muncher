@@ -22,6 +22,29 @@ jb.k = {
     INVISIBILITY_ALPHA: 0.25,
     SPELL_TRIGGER_TOLERANCE: 0.25,
     SPEED: {PLAYER: 100, MONSTER: 100 * 1.03333, FIREBALL: 200},
+    TREASURE_HOVER_HEIGHT: 3,
+    TREASURE_HOVER_FREQ: 0.33,
+    TREASURE_SPAWN_DELAY: 10,
+    TREASURE_RETRY_DELAY: 3,
+    TREASURE_LIFETIME: 8,
+    treasures: {
+        "mushroom": {
+            value: 50,
+            idle: [{row: 4, col: 5}],
+        },
+        "ring": {
+            value: 100,
+            idle: [{row: 3, col: 15}],
+        },
+        "tome": {
+            value: 150,
+            idle: [{row: 3, col: 3}],
+        },
+        "crown": {
+            value: 200,
+            idle: [{row: 6, col: 16}],
+        },
+    },
     playerTypes: {
         "knight": {
           idle: [{row: 0, col: 0}],

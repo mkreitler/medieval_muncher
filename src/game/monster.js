@@ -116,8 +116,10 @@ blueprints.draft(
 
             jb.monster.bumpKillMultiple();
 
+            var value = jb.monster.getKillScore()
             jb.messages.broadcast("spawnPuffParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight));
-            jb.messages.broadcast("spawnTextParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight, "" + jb.monster.getKillScore()));
+            jb.messages.broadcast("spawnTextParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight, "" + value));
+            jb.messages.broadcast("scorePoints", value);
         },
 
         hunt: function(map) {
@@ -388,6 +390,10 @@ jb.monster = {
 
     reset: function() {
         this.resetKillMultiple();
+
+        for (var i=0; i<this.monsters.length; ++i) {
+            this.monsters[i].reset();
+        }
     },
 
     bumpKillMultiple: function() {
