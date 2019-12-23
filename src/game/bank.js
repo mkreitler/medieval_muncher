@@ -14,6 +14,8 @@ jb.bank = {
     coinCount: 0,
     powerupCount: 0,
     score: 0,
+    totalCoins: 0,
+    totalPowerups: 0,
 
     listen: function() {
         jb.messages.listen("spawnCoin", this);
@@ -25,25 +27,29 @@ jb.bank = {
     init: function(tileSheetIn, scale) {
         this.tileSheet = tileSheetIn;
         this.scale = scale;
-        this.count = 0;
+        this.coinCount = 0;
     },
 
     reset: function() {
-        // Nothing to do here, yet...
-        this.score = 0;
-    },
-
-    cleanUp: function() {
+        var countedCoins = 0;
         for (var key in this.display) {
-            if (this.display[key]) {
-                while (this.display[key].length > 0) {
-                    this.cache[key].push(this.display[key].pop())
+            countedCoins += this.display[key].length;
+        }
+
+        this.score = 0;
+        this.coinCount = this.totalCoins;
+        this.powerupCount = this.totalPowerups;
+
+        for (var key in this.cache) {
+            if (this.cache[key]) {
+                while (this.cache[key].length > 0) {
+                    this.display[key].push(this.cache[key].pop())
+                    ++countedCoins;
                 }
             }
         }
 
-        this.coinCount = 0;
-        this.powerupCount = 0;
+        jb.assert(this.coinCount === countedCoins, "Incorrect coin count!");
     },
 
     collide: function(row, col) {
@@ -92,7 +98,7 @@ jb.bank = {
     },
 
     spawnPowerup: function() {
-        this.powerupCount += 1;
+        this.totalPowerups += 1;
     },
 
     collectPowerup: function() {
@@ -108,19 +114,14 @@ jb.bank = {
             this.cache[key] = [];
         }
 
-        if (this.cache[key].length > 0) {
-            coin = this.cache[key].pop();
-        }
-        else {
-            coin = new this.coinObj(pos.row, pos.col);
-        }
-
         if (!this.display[key]) {
             this.display[key] = [];
         }
 
-        this.coinCount += 1;
-        this.display[key].push(coin);
+        coin = new this.coinObj(pos.row, pos.col);
+
+        this.totalCoins += 1;
+        this.cache[key].push(coin);
 
         return coin;
     },
@@ -144,7 +145,11 @@ jb.bank = {
         if (this.coinCount === 0 && this.powerupCount === 0) {
             jb.messages.broadcast("levelComplete");
         }
-    }
+    },
+
+    getScore: function() {
+        return this.score;
+    },
 };
 
 jb.bank.listen();

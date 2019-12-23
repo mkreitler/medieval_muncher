@@ -26,6 +26,20 @@ jb.program = {
   maxSpeed: 0,
   minSize: Number.MAX_VALUE,
   sheets: {},
+  breadcrumbs: [
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+    {x: 0, y: 0},
+  ],
+  iCrumb: -1,
+  debugBreadcrumbs: false,
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -107,6 +121,7 @@ jb.program = {
   },
 
   setup_userMove: function() {
+    jb.clear();
     jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
 
     this.reset();
@@ -131,8 +146,21 @@ jb.program = {
     while (!this.died && dtMS > jb.k.EPSILON) {
       maxDt = Math.min(maxDt, dtMS);
 
+      // Clear and draw these before the update so we can see debug drawings
+      // performed during the updates.
+      jb.clear();
+      jb.mapTest.draw(jb.ctxt, this.origin);
+  
       var moveDir = this.getMoveDirection();
       this.player.update(moveDir, maxDt, jb.mapTest);
+
+      if (this.debugBreadcrumbs) {
+        this.iCrumb += 1;
+        this.iCrumb %= this.breadcrumbs.length;
+        this.breadcrumbs[this.iCrumb].x = this.player.bounds.l;
+        this.breadcrumbs[this.iCrumb].y = this.player.bounds.t;
+      }
+
       jb.treasures.update(maxDt);
 
       for (var i=0; i<this.monsters.length; ++i) {
@@ -146,6 +174,10 @@ jb.program = {
       jb.powerups.update(maxDt);
       jb.particles.update(maxDt);
 
+      if (this.debugBreadcrumbs) {
+        this.drawBreadcrumbs();
+      }
+
       this.checkPowerupCollisions();
       this.checkMonsterCollisions();
       jb.treasures.checkCollision(this.player);
@@ -154,8 +186,6 @@ jb.program = {
       dtMS -= maxDt;
     }
 
-    jb.clear();
-    jb.mapTest.draw(jb.ctxt, this.origin);
     jb.bank.draw(jb.ctxt, jb.mapTest);
     jb.powerups.draw(jb.ctxt, jb.mapTest);
     jb.treasures.draw(jb.ctxt);
@@ -168,13 +198,43 @@ jb.program = {
     jb.while(this.gameState === this.GAME_STATE.PLAYING);
   },
 
-  cleanUp: function() {
-    jb.bank.cleanUp();
+  gameOver: function() {
+    if (this.gameState === this.GAME_STATE.DIED) {
+      jb.goto("do_playerDied");
+    }
+    else {
+      jb.goto("do_playerWon");
+    }
+
+    jb.listenForTap();
   },
 
-  do_gameOver: function() {
+  setupRestart: function() {
+    jb.listenForTap();
+  },
+  
+  do_waitForRestart: function() {
+    jb.while(!jb.tap.done);
+  },
+
+  restart: function() {
+    jb.goto("setup_userMove");
+  },
+
+  // Gosubs ///////////////////////////////////////////////////////////////////
+  do_playerDied: function() {
     jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
-    jb.while(true);
+
+    jb.goto("setupRestart");
+
+    jb.while(false);
+  },
+
+  do_playerWon: function() {
+
+    jb.goto("setupRestart");
+
+    jb.while(false);
   },
 };
 
@@ -270,4 +330,15 @@ jb.program.reset = function() {
   jb.treasures.reset();
   jb.monster.reset();
   this.player.reset(jb.mapTest, this.SIZE);
+};
+
+jb.program.drawBreadcrumbs = function() {
+  jb.ctxt.lineWidth = 2;
+  jb.ctxt.strokeStyle = "green";
+  jb.ctxt.beginPath();
+  for (var i=0; i<this.breadcrumbs.length; ++i) {
+    jb.ctxt.rect(this.breadcrumbs[i].x, this.breadcrumbs[i].y, this.player.bounds.w, this.player.bounds.h);
+  }
+  jb.ctxt.closePath();
+  jb.ctxt.stroke();
 };

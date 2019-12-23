@@ -127,6 +127,7 @@ jb.powerups = {
         this.info.prototype.reset = function() {
             this.timer = 0;
             this.wasBlinkOn = false;
+            this.visible = true;
         };
 
         this.info.prototype.checkCollisionWith = function(owner, other) {
@@ -347,7 +348,11 @@ jb.powerups = {
         this.hoverTime = 0;
 
         for (var i=0; i<this.cache.length; ++i) {
-            this.cache[i].visible = true;
+            this.cache[i].reset();
+        }
+
+        for (var i=0; i<this.fireballs.length; ++i) {
+            this.fireballs[i].reset();
         }
     },
 
@@ -362,8 +367,8 @@ jb.powerups = {
         for (var i=0; i<this.cache.length; ++i) {
             var powerup = this.cache[i];
             if (powerup.visible) {
-                var x = map.xFromColCenter(powerup.col) - this.tileSheet.cellDx / 2 * this.scale;
-                var y = map.yFromRowCenter(powerup.row) - this.tileSheet.cellDy / 2 * this.scale;
+                var x = map.xFromColCenter(powerup.col);
+                var y = map.yFromRowCenter(powerup.row);
 
                 var dx = x - (other.bounds.l + other.bounds.halfWidth);
                 var dy = y - (other.bounds.t + other.bounds.halfHeight);

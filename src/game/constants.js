@@ -25,8 +25,7 @@ jb.k = {
     TREASURE_HOVER_HEIGHT: 3,
     TREASURE_HOVER_FREQ: 0.33,
     TREASURE_SPAWN_DELAY: 10,
-    TREASURE_RETRY_DELAY: 3,
-    TREASURE_LIFETIME: 8,
+    TREASURE_LIFETIME: 7,
     treasures: {
         "mushroom": {
             value: 50,

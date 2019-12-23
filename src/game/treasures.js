@@ -72,7 +72,6 @@ jb.treasures = {
     cache: [],
     active: null,
     spawnTimer: 0,
-    wantsSpawn: true,
 
     init: function(sheet, map) {
         this.map = map;
@@ -101,22 +100,22 @@ jb.treasures = {
     },
 
     update: function(dtMS) {
-        this.spawnTimer += dtMS * 0.001;
-        if (this.spawnTimer > jb.k.TREASURE_SPAWN_DELAY) {
-            var spawnSite = this.map.getTreasureSpawnSite();
-            if (this.wantsSpawn && spawnSite) {
-                this.active = jb.popRandom(this.cache);
-                this.active.spawn(spawnSite.x, spawnSite.y);
-                this.spawnTimer = 0;
-                this.wantsSpawn = false;
-            }
-            else {
-                this.spawnTimer -= jb.k.TREASURE_RETRY_DELAY;
-            }
-        }
-
         if (this.active) {
             this.active.update(dtMS);
+            this.spawnTimer = 0;
+        }
+        else {
+            // Try to spawn something after a time.
+            var spawnSite = this.map.getTreasureSpawnSite();
+
+            if (spawnSite) {
+                this.spawnTimer += dtMS * 0.001;
+
+                if (this.spawnTimer > jb.k.TREASURE_SPAWN_DELAY) {
+                    this.active = jb.popRandom(this.cache);
+                    this.active.spawn(spawnSite.x, spawnSite.y);
+                }
+            }
         }
     },
 
@@ -128,7 +127,6 @@ jb.treasures = {
 
     reset: function() {
         this.spawnTimer = 0;
-        this.wantsSpawn = true;
 
         if (this.active) {
             this.cache.push(this.active);
@@ -147,9 +145,7 @@ jb.treasures = {
     },
 
     onTreasureDespawned: function(treasure) {
-        this.wantsSpawn = true;
-        this.spawnTimer -= jb.k.TREASURE_RETRY_DELAY;
-        this.spawnTimer = Math.max(0, this.spawnTimer);
+        this.spawnTimer = 0;
         this.cache.push(this.active);
         this.active = null;
     },

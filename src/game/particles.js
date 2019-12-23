@@ -25,13 +25,17 @@ blueprints.draft(
     // Actions
     {
         spawn: function(x, y, text) {
+            this.reset();
             this.startPos.x = x;
             this.startPos.y = y;
             this.endPos.x = x;
             this.endPos.y = y + jb.particles.TEXT_TRANS_Y * jb.particles.scale;
-            this.timer = 0;
             this.visible = true;
             this.text = text;
+        },
+
+        reset: function() {
+            this.timer = 0;
         },
 
         update: function(dtMS) {
@@ -83,6 +87,7 @@ blueprints.draft(
     // Actions
     {
         spawn: function(x, y) {
+            this.reset();
             this.spriteResetTimer();
             this.spriteSetState("puff");
             this.spriteSetAlpha(1.0);
@@ -90,6 +95,9 @@ blueprints.draft(
             this.spriteSetScale(this.localScale, this.localScale);
             this.spriteMoveTo(x / jb.particles.scale, y / jb.particles.scale);
             this.visible = true;
+        },
+
+        reset: function() {
             this.timer = 0;
         },
 
@@ -149,6 +157,10 @@ jb.particles = {
     reset: function() {
         while (this.active.length > 0) {
             this.cache.push(this.active.pop());
+        }
+
+        for (var i=0; i<this.cache.length; ++i) {
+            this.cache[i].reset();
         }
     },
 
