@@ -5,8 +5,8 @@ blueprints.draft(
     {
         value: 0,
         timer: 0,
-        baseX: 0,
-        baseY: 0,
+        baseX: -1,
+        baseY: -1,
         manager: null,
     },
 
@@ -29,6 +29,7 @@ blueprints.draft(
             this.reset();
             this.baseX = x;
             this.baseY = y;
+            this.spriteMoveTo(this.baseX, this.baseY);
         },
 
         reset: function() {
@@ -102,7 +103,6 @@ jb.treasures = {
     update: function(dtMS) {
         if (this.active) {
             this.active.update(dtMS);
-            this.spawnTimer = 0;
         }
         else {
             // Try to spawn something after a time.
@@ -145,6 +145,8 @@ jb.treasures = {
     },
 
     onTreasureDespawned: function(treasure) {
+        jb.assert(treasure === this.active, "Invalid treasure despawn!");
+
         this.spawnTimer = 0;
         this.cache.push(this.active);
         this.active = null;

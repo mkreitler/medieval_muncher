@@ -1,5 +1,7 @@
 jb.k = {
     EPSILON: 0.001,
+    COLUMNS_LARGE: 40,
+    COLUMNS_SMALL: 80,
     NUM_MONSTERS: 4,
     IDLE_DT: 1000,
     ANIM_DT: 250,
@@ -26,6 +28,10 @@ jb.k = {
     TREASURE_HOVER_FREQ: 0.33,
     TREASURE_SPAWN_DELAY: 10,
     TREASURE_LIFETIME: 7,
+    DEATH_SPIN_FREQ: 1,
+    DEATH_SPIN_DURATION: 2,
+    WIN_FLASHES: 4,
+    CELEBRATION_DURATION: 2,
     treasures: {
         "mushroom": {
             value: 50,

@@ -718,6 +718,10 @@ jb.sprites = {
     this.spriteInfo.bVisible = true;
   },
 
+  spriteSetRotation: function(angleInDegrees) {
+    this.spriteInfo.rotation = angleInDegrees;
+  },
+
   spriteSetAnchor: function(x, y) {
     this.spriteInfo.anchor.x = x === undefined ? 0.5 : x;
     this.spriteInfo.anchor.y = y === undefined ? 0.5 : y;
@@ -2245,6 +2249,8 @@ jb.startTimer = function(timerName) {
 };
 
 jb.setTimer = function(timerName, timerVal) {
+    timerVal = timerVal === undefined ? 0 : timerVal;
+
     jb.timers[timerName].now = timerVal;
     jb.timers[timerName].last = timerVal;
 };

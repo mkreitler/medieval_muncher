@@ -7,8 +7,6 @@ jb.program = {
   SCALE: 3,
   SCREEN_WIDTH: 640,
   SCREEN_HEIGHT: 480,
-  COLUMNS: 40,
-  ANIM_DT: 33,
   IMAGES: {creatures: null, world: null, background: null, items: null, fx: null},
   GAME_STATE: {UNKNOWN: -1, PLAYING: 0, DIED: 1, INTRO: 2, WON: 3},
 
@@ -68,9 +66,9 @@ jb.program = {
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
     // TODO: make this map-dependent.
-    jb.assert(this.customizeForPassword("stalking"), "Customization failed!");
+    // jb.assert(this.customizeForPassword("stalking"), "Customization failed!");
     // jb.assert(this.customizeForPassword("slay bells"), "Customization failed!");
-    // jb.assert(this.customizeForPassword("santa claws"), "Customization failed!");
+    jb.assert(this.customizeForPassword("santa claws"), "Customization failed!");
 
     resources.loadWebFonts(["VT323"]);
   },
@@ -93,7 +91,7 @@ jb.program = {
     }
 
     jb.setWebFont("VT323");
-    jb.setColumns(this.COLUMNS);
+    jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.bank.init(this.sheets.itemTiles, this.SCALE);
     jb.monster.init();
     jb.powerups.init(this.sheets.itemTiles, this.SCALE, this.powerupType, this.sheets.fxTiles, jb.mapTest);
@@ -122,7 +120,12 @@ jb.program = {
 
   setup_userMove: function() {
     jb.clear();
-    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
+
+    jb.setColumns(jb.k.COLUMNS_LARGE);
+    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
+
+    jb.setColumns(jb.k.COLUMNS_SMALL);
+    jb.printAtXY("Press 'enter' to play", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5);
 
     this.reset();
 
@@ -131,12 +134,10 @@ jb.program = {
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].start(jb.mapTest, this.level);
     }
-
-    jb.listenForTap();
   },
 
   do_waitForTap: function() {
-    jb.while(!jb.tap.done);
+    jb.while(!jb.isKeyDown("return"));
   },
 
   do_main_game_loop: function() {
@@ -200,41 +201,85 @@ jb.program = {
 
   gameOver: function() {
     if (this.gameState === this.GAME_STATE.DIED) {
-      jb.goto("do_playerDied");
+      jb.goto("playerDied");
     }
     else {
-      jb.goto("do_playerWon");
+      jb.goto("playerWon");
     }
-
-    jb.listenForTap();
-  },
-
-  setupRestart: function() {
-    jb.listenForTap();
-  },
-  
-  do_waitForRestart: function() {
-    jb.while(!jb.tap.done);
-  },
-
-  restart: function() {
-    jb.goto("setup_userMove");
   },
 
   // Gosubs ///////////////////////////////////////////////////////////////////
-  do_playerDied: function() {
-    jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5);
-
-    jb.goto("setupRestart");
-
-    jb.while(false);
+  playerDied: function() {
+    jb.startTimer("endGame");
   },
 
-  do_playerWon: function() {
+  do_spinPlayer: function() {
+    var time = jb.timer("endGame");
+    var angle = time * 360 * jb.k.DEATH_SPIN_FREQ;
+    angle = Math.floor(angle / 90) * 90;
 
-    jb.goto("setupRestart");
+    jb.clear();
 
-    jb.while(false);
+    jb.ctxt.globalAlpha = Math.max(0, 1.0 - time / jb.k.DEATH_SPIN_DURATION);
+    jb.ctxt.globalAlpha *= jb.ctxt.globalAlpha;
+    jb.mapTest.draw(jb.ctxt, this.origin);
+    jb.ctxt.globalAlpha = 1.0;
+
+    this.player.spriteSetAlpha(Math.max(0, 1.0 - time / jb.k.DEATH_SPIN_DURATION));
+    this.player.spriteSetRotation(angle);
+    this.player.spriteDraw(jb.ctxt);
+
+    jb.while(jb.timer("endGame") < jb.k.DEATH_SPIN_DURATION);
+  },
+
+  do_deathMessage: function() {
+    jb.clear();
+    jb.setColumns(jb.k.COLUMNS_SMALL);
+    jb.printAtXY("Press 'enter' to play again", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
+    jb.setColumns(jb.k.COLUMNS_LARGE);
+    jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
+    jb.until(jb.isKeyDown("return"));
+  },
+
+  playAgainOne: function() {
+    jb.goto("setup_userMove");
+  },
+
+  playerWon: function() {
+    jb.startTimer("endGame");
+  },
+
+  do_flashBoard: function() {
+    var time = jb.timer("endGame");
+    var phase = Math.floor(time / jb.k.CELEBRATION_DURATION * 2 * jb.k.WIN_FLASHES);
+
+    phase = Math.min(phase, 2 * jb.k.WIN_FLASHES);
+
+    jb.clear();
+
+    if (phase % 2 === 1) {
+      jb.mapTest.draw(jb.ctxt, this.origin);
+    }
+
+    jb.until(time > jb.k.CELEBRATION_DURATION);
+  },
+
+  do_winMessage: function() {
+    jb.clear();
+    jb.setColumns(jb.k.COLUMNS_SMALL);
+    jb.printAtXY("Record your score: " + jb.bank.getScore(), this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
+
+    jb.setForeColor("yellow");
+    jb.printAtXY("Next Clue: ?????", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
+
+    jb.setForeColor("white");
+    jb.setColumns(jb.k.COLUMNS_LARGE);
+    jb.printAtXY("You Won!", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
+    jb.until(jb.isKeyDown("return"));
+  },
+
+  playAgainTwo: function() {
+    jb.goto("setup_userMove");
   },
 };
 

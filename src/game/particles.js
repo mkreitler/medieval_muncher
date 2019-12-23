@@ -88,7 +88,6 @@ blueprints.draft(
     {
         spawn: function(x, y) {
             this.reset();
-            this.spriteResetTimer();
             this.spriteSetState("puff");
             this.spriteSetAlpha(1.0);
             this.spriteSetAnchor(0.5, 0.5);
@@ -98,7 +97,9 @@ blueprints.draft(
         },
 
         reset: function() {
+            this.spriteResetTimer();
             this.timer = 0;
+            this.visible = false;
         },
 
         update: function(dtMS) {

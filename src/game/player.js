@@ -41,6 +41,8 @@ blueprints.draft(
             this.testDirs.right.dx = tileSize;
             this.row = -1;
             this.col = -1;
+            this.powerup = null;
+            this.spriteSetAlpha(1.0);
             this.wantsInvisibility = false;
         },
 
