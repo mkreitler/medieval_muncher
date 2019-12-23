@@ -32,6 +32,12 @@ jb.k = {
     DEATH_SPIN_DURATION: 2,
     WIN_FLASHES: 4,
     CELEBRATION_DURATION: 2,
+    instructions: [
+      "Use arrow keys to collect gold and treasure",
+      "Uses swords to defeat nearby enemies",
+      "Has stealth cloak, 2x treasure bonus",
+      "Uses fireballs to defeat distant enemies",
+    ],
     treasures: {
         "mushroom": {
             value: 50,
@@ -51,31 +57,40 @@ jb.k = {
         },
     },
     playerTypes: {
-        "knight": {
+      "knight": {
+        scoreMultiple: 1,
+        frames: {
           idle: [{row: 0, col: 0}],
-          walk: [{row: 1, col: 0}, {row: 0, col: 0}]
+          walk: [{row: 1, col: 0}, {row: 0, col: 0}],
         },
-        "thief": {
+      },
+      "thief": {
+        scoreMultiple: 2,
+        frames: {
           idle: [{row: 2, col: 2}],
           walk: [{row: 3, col: 2}, {row: 2, col: 2}]
         },
-        "wizard": {
+      },
+      "wizard": {
+        scoreMultiple: 1,
+        frames: {
           idle: [{row: 4, col: 7}],
           walk: [{row: 5, col: 7}, {row: 4, col: 7}]
         },
       },
+    },
     
-      mapTypes: {
-        "dungeon": {row: 1, doorRow: 3, doorCol: 28},
-        "crypt": {row: 21, doorRow: 2, doorCol: 39},
-        "labyrinth": {row: 5, doorRow: 2, doorCol: 41}
-      },
-    
-      monsterTypes: {
-        "cubes": {idleRow: 20, idleCol: 14, weakRow: 20, weakCol: 13},
-        "skeletons": {idleRow: 16, idleCol: 5, weakRow: 16, weakCol: 5},
-        "demons": {idleRow: 10, idleCol: 8, weakRow: 10, weakCol: 7},
-      },
+    mapTypes: {
+      "dungeon": {row: 1, doorRow: 3, doorCol: 28},
+      "crypt": {row: 21, doorRow: 2, doorCol: 39},
+      "labyrinth": {row: 5, doorRow: 2, doorCol: 41}
+    },
+  
+    monsterTypes: {
+      "cubes": {idleRow: 20, idleCol: 14, weakRow: 20, weakCol: 13},
+      "skeletons": {idleRow: 16, idleCol: 5, weakRow: 16, weakCol: 5},
+      "demons": {idleRow: 10, idleCol: 8, weakRow: 10, weakCol: 7},
+    },
 
-      fireballFrames: [{row: 14, col: 0}],
-    };
+    fireballFrames: [{row: 14, col: 0}],
+  };

@@ -2842,6 +2842,23 @@ jb.isKeyDown = function(whichKey) {
   return jb.keys[whichKey] && jb.keys[whichKey].isDown;
 };
 
+jb.wasKeyPressed = function(whichKey) {
+  var wasPressed = false;
+  var key = jb.keys[whichKey];
+
+  if (key && key.waitingForPress) {
+    wasPressed = key.wasPressed;
+    if (wasPressed) {
+      key.waitingForPress = false;
+    }
+  }
+  else if (key) {
+    key.waitingForPress = true;
+  }
+
+  return wasPressed;
+};
+
 jb.readLine = function() {
     var retVal = "";
 
@@ -2959,21 +2976,33 @@ jb.onDown = function(e) {
       lookupCode = String.fromCharCode(keyCode);
     }
 
+    var key = null;
     if (jb.keys[lookupCode]) {
       if (!jb.keys[lookupCode].isDown) {
-        jb.keys[lookupCode].isDown = true;
-        jb.keys[lookupCode].downTime = Date.now();
-        jb.keys[lookupCode].gesture = jb.GESTURE.NONE;
+        key = jb.keys[lookupCode];
+        key.isDown = true;
+        key.downTime = Date.now();
+        key.gesture = jb.GESTURE.NONE;
 
-        dt = jb.keys[lookupCode].downTime - jb.keys[lookupCode].upTime;
+        dt = key.downTime - key.upTime;
 
-        jb.keys[lookupCode].upTime = 0;
+        key.upTime = 0;
       }
     }
     else {
-      jb.keys[lookupCode] = {isDown: true, downTime: Date.now(), upTime: 0, tapCount: 0, gesture: jb.GESTURE.NONE, code: lookupCode};
+      key = {pressCount: -1, waitingForPress: false, wasPressed: false, isDown: true, downTime: Date.now(), upTime: 0, tapCount: 0, gesture: jb.GESTURE.NONE, code: lookupCode};
+      jb.keys[lookupCode] = key;
       dt = jb.DOUBLE_TAP_INTERVAL;
     }
+    
+    if (key.waitingForPress) {
+      key.pressCount = 1;
+    }
+    else {
+      key.pressCount = -1;
+    }
+
+    key.wasPressed = false;
 
     if (jb.keys[lookupCode].gesture === jb.GESTURE.NONE) {
       jb.keys[lookupCode].gesture = jb.GESTURE.BUSY;
@@ -3053,10 +3082,16 @@ jb.onUp = function(e) {
         else {
           key.upTime = Date.now();
         }
+
+        if (key.waitingForPress) {
+          if (key.pressCount > 0) {
+            key.wasPressed = true;
+          }
+        }
       }
     }
     else {
-      jb.keys[lookupCode] = {isDown: false, upTime: Date.now(), downTime: 0, tapCount: 0, gesture: jb.GESTURE.NONE, code: lookupCode};
+      jb.keys[lookupCode] = {pressCount: -1, waitingForPress: false, wasPressed: false, isDown: false, upTime: Date.now(), downTime: 0, tapCount: 0, gesture: jb.GESTURE.NONE, code: lookupCode};
     }
     
     if (specialCode) {

@@ -40,7 +40,7 @@ blueprints.draft(
             this.timer += dtMS * 0.001;
 
             if (this.timer > jb.k.TREASURE_LIFETIME) {
-                this.despawn(false);
+                this.despawn();
             }
             else {
                 var hoverY = jb.k.TREASURE_HOVER_HEIGHT * Math.sin(this.timer * Math.PI * 2 * jb.k.TREASURE_HOVER_FREQ);
@@ -53,12 +53,8 @@ blueprints.draft(
             this.spriteDraw(ctxt);
         },
 
-        despawn: function(wasCollected) {
+        despawn: function() {
             jb.assert(this.manager, "Invalid manager!");
-
-            if (wasCollected) {
-                jb.messages.broadcast("spawnTextParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight, "" + this.value));
-            }
 
             jb.messages.broadcast("spawnPuffParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight));
             this.manager.onTreasureDespawned(this);
@@ -73,9 +69,21 @@ jb.treasures = {
     cache: [],
     active: null,
     spawnTimer: 0,
+    scoreMultiplier: 1,
 
-    init: function(sheet, map) {
+    particleInfo: {x: -1, y: -1, text: ""},
+
+    getParticleInfo: function(x, y, text) {
+        this.particleInfo.x = x;
+        this.particleInfo.y = y;
+        this.particleInfo.text = text;
+
+        return this.particleInfo;
+    },
+
+    init: function(sheet, map, scoreMultiplier) {
         this.map = map;
+        this.scoreMultiplier = scoreMultiplier;
 
         for (key in jb.k.treasures) {
             var treasure = jb.k.treasures[key];
@@ -98,6 +106,10 @@ jb.treasures = {
         }
 
         this.reset();
+    },
+
+    getScoreMultiplier: function() {
+        return this.scoreMultiplier;
     },
 
     update: function(dtMS) {
@@ -137,8 +149,13 @@ jb.treasures = {
     checkCollision: function(other) {
         if (this.active) {
             if (this.active.bounds.overlap(other.bounds)) {
-                jb.messages.broadcast("scorePoints", this.active.getValue());
-                this.active.despawn(true);
+                var value = this.active.getValue() * this.scoreMultiplier;
+                jb.messages.broadcast("scorePoints", value);
+                jb.messages.broadcast("spawnTextParticle", this.getParticleInfo(this.active.bounds.l + this.active.bounds.halfWidth,
+                                                                                this.active.bounds.t + this.active.bounds.halfHeight,
+                                                                                "" + value));
+
+                this.active.despawn();
 
             }
         }

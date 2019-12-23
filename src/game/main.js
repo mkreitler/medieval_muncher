@@ -26,6 +26,8 @@ jb.program = {
   maxSpeed: 0,
   minSize: Number.MAX_VALUE,
   sheets: {},
+  clue: null,
+  scoreMultiple: 1,
   breadcrumbs: [
     {x: 0, y: 0},
     {x: 0, y: 0},
@@ -132,7 +134,7 @@ jb.program = {
     jb.monster.init();
     jb.powerups.init(this.sheets.itemTiles, this.SCALE, this.powerupType, this.sheets.fxTiles, jb.mapTest);
     jb.particles.init(this.sheets.fxTiles, this.SCALE);
-    jb.treasures.init(this.sheets.itemTiles, jb.mapTest);
+    jb.treasures.init(this.sheets.itemTiles, jb.mapTest, this.scoreMultiple);
 
     jb.messages.listen("levelComplete", this);
 
@@ -150,30 +152,52 @@ jb.program = {
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i] = jb.monster.create(this.sheets.creatureTiles, this.monsterType.idleRow, this.monsterType.idleCol, this.monsterType.weakRow, this.monsterType.weakCol);
     }
-    
-    this.player = this.player;
   },
 
-  setup_userMove: function() {
+  showMainPage: function() {
+    jb.startTimer("uiClock");
+    jb.clearInput();
+    this.reset();
+  },
+
+  do_updateMainPage: function() {
+    var time = Math.floor(jb.timer("uiClock") * 1000 / jb.k.ANIM_DT);
+    var iMessage = 0;
+    var frame = time % 2;
+    var iRow = 0;
+    var x0 = this.SCREEN_WIDTH / 4;
+    var y0 = this.SCREEN_HEIGHT / 1.9;
+    var spacer = this.SCREEN_WIDTH / 20;
+
     jb.clear();
 
     jb.setColumns(jb.k.COLUMNS_LARGE);
-    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
+    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 5, 0.5, 0.5);
 
     jb.setColumns(jb.k.COLUMNS_SMALL);
-    jb.printAtXY("Press 'enter' to play", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5);
+    jb.printAtXY(jb.k.instructions[iMessage++], this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2.6, 0.5, 0.5);
 
-    this.reset();
+    jb.setForeColor("gray");
+    for (var key in jb.k.playerTypes) {
+      var y = y0 + iRow * spacer;
+      var animInfo = jb.k.playerTypes[key].frames.walk[frame];
+      this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, x0, y, 0.5, 0.5);
+      jb.printAtXY(jb.k.instructions[iMessage++], x0 + spacer, y, 0, 0.5);
+      ++iRow;
+    }
 
+    jb.setForeColor("white");
+    jb.printAtXY("Press 'enter' to play", this.SCREEN_WIDTH / 2, 5 * this.SCREEN_HEIGHT / 6, 0.5, 0.5);
+
+    jb.while(!jb.wasKeyPressed("return"));
+  },
+
+  startGame: function() {
     this.gameState = this.GAME_STATE.PLAYING;
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].start(jb.mapTest, this.level);
     }
-  },
-
-  do_waitForTap: function() {
-    jb.while(!jb.isKeyDown("return"));
   },
 
   do_main_game_loop: function() {
@@ -246,11 +270,11 @@ jb.program = {
 
   // Gosubs ///////////////////////////////////////////////////////////////////
   playerDied: function() {
-    jb.startTimer("endGame");
+    jb.startTimer("uiClock");
   },
 
   do_spinPlayer: function() {
-    var time = jb.timer("endGame");
+    var time = jb.timer("uiClock");
     var angle = time * 360 * jb.k.DEATH_SPIN_FREQ;
     angle = Math.floor(angle / 90) * 90;
 
@@ -265,29 +289,29 @@ jb.program = {
     this.player.spriteSetRotation(angle);
     this.player.spriteDraw(jb.ctxt);
 
-    jb.while(jb.timer("endGame") < jb.k.DEATH_SPIN_DURATION);
+    jb.while(jb.timer("uiClock") < jb.k.DEATH_SPIN_DURATION);
   },
 
   do_deathMessage: function() {
     jb.clear();
     jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_SMALL);
-    jb.printAtXY("Press 'enter' to play again", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
+    jb.printAtXY("Press 'enter' to try again", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
     jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
     jb.until(jb.isKeyDown("return"));
   },
 
   playAgainOne: function() {
-    jb.goto("setup_userMove");
+    jb.goto("showMainPage");
   },
 
   playerWon: function() {
-    jb.startTimer("endGame");
+    jb.startTimer("uiClock");
   },
 
   do_flashBoard: function() {
-    var time = jb.timer("endGame");
+    var time = jb.timer("uiClock");
     var phase = Math.floor(time / jb.k.CELEBRATION_DURATION * 2 * jb.k.WIN_FLASHES);
 
     phase = Math.min(phase, 2 * jb.k.WIN_FLASHES);
@@ -307,7 +331,7 @@ jb.program = {
     jb.printAtXY("Record your score: " + jb.bank.getScore(), this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
 
     jb.setForeColor("yellow");
-    jb.printAtXY("Next Clue: ?????", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
+    jb.printAtXY("Next Clue: " + this.clue, this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
 
     jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_LARGE);
@@ -316,7 +340,7 @@ jb.program = {
   },
 
   playAgainTwo: function() {
-    jb.goto("setup_userMove");
+    jb.goto("showMainPage");
   },
 };
 
@@ -387,7 +411,8 @@ jb.program.customizeForPassword = function(password) {
     succeeded = true;
 
     jb.assert(jb.k.playerTypes.hasOwnProperty(options.character), "Unknown player type!");
-    this.playerFrames = jb.k.playerTypes[options.character];
+    this.playerFrames = jb.k.playerTypes[options.character].frames;
+    this.scoreMultiple = jb.k.playerTypes[options.character].scoreMultiple;
 
     jb.assert(jb.k.monsterTypes.hasOwnProperty(options.monster), "Unknown monster type!");    
     this.monsterType = jb.k.monsterTypes[options.monster];
@@ -401,6 +426,9 @@ jb.program.customizeForPassword = function(password) {
 
     jb.assert(options.hasOwnProperty("level"), "No difficulty level defined!");
     this.level = Math.max(1, parseInt(options.level));
+
+    jb.assert(options.hasOwnProperty("clue"), "Missing clue!");
+    this.clue = options.clue;
   }
 
   return succeeded;
