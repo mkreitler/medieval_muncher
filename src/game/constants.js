@@ -81,7 +81,7 @@ jb.k = {
     },
     
     mapTypes: {
-      "dungeon": {row: 1, doorRow: 3, doorCol: 28},
+      "dungeon": {row: 13, doorRow: 3, doorCol: 28},
       "crypt": {row: 21, doorRow: 2, doorCol: 39},
       "labyrinth": {row: 5, doorRow: 2, doorCol: 41}
     },

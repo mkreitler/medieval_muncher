@@ -24,27 +24,27 @@ jb.mapTest = {
             "******************************************",
         ],
         crypt: [
-            "******************************************",
-            "**P1........**..............**........P1**",
-            "**..******..**..**********..**..******..**",
-            "**......**......................**......**",
-            "**..**..**..**..****..****..**..**..**..**",
-            "**..**..**..**..............**..**..**..**",
-            "**......**..********..********..**......**",
-            "**..**..............gg..............**..**",
-            "**..**..****..******dd******..****..**..**",
-            "**..**..****..**1,,,,,,,4,**..****..**..**",
-            "t2............**2,,,,,,,5,**............t1",
-            "**..**..****..**3,,,,,,,6,**..****..**..**",
-            "**..**..****..******dd******..****..**..**",
-            "**..**..............gg..............**..**",
-            "**..**..************..************..**..**",
-            "**..................s...................**",
-            "****..****..******..**..******..****..****",
-            "**....**....**......**......**....**....**",
-            "**..****..****..**********..****..****..**",
-            "**P1..................................P1**",
-            "******************************************",
+            "********t4********************************",
+            "**............P1........................**",
+            "**..**********..**...*********..******..**",
+            "t3..**1.,,2.**..**..............**......**",
+            "**..****dd****..******..**..**....****..**",
+            "**......gg..**..........**..******......**",
+            "**..****..****....********..........******",
+            "**..**............**......************..**",
+            "**..**..************..**........**....P1**",
+            "**......**........**..****..**..******..**",
+            "**..**..****..**......****..**..........t2",
+            "**..**..**....****..**..**..**********..**",
+            "**..**......****..s.....**..**3.,,4.**..**",
+            "**..**..**..******..******..****dd****..**",
+            "**......******......**..........gg......**",
+            "**..******..**..**..**..********..****..**",
+            "****........**..**......P1**..**....**..**",
+            "**....****......**..****..**..****..**..**",
+            "**..**......**..**..****........**..**..**",
+            "**P1....**..**..**........****..........**",
+            "********************************t1********",
         ],
         labyrinth: [
             "******************************************",
@@ -644,6 +644,8 @@ jb.mapTest = {
     },
 
     isCellClear: function(row, col) {
+        // ###
+        jb.assert(this.map[row], "Invalid row!");
         var cell = this.map[row][2 * col];
 
         return cell !== '*' && cell !== 'd';
@@ -653,7 +655,7 @@ jb.mapTest = {
         if (!this.isInBounds(row, col)) {
             console.log("Out of bounds!");
         }
-        return this.map[row][2 * col] == 't';
+        return this.map[row][2 * col] === 't';
     },
 
     getHuntGoal: function(bounds, moveDir, turn, goalOut, finalAttempt) {
@@ -685,9 +687,11 @@ jb.mapTest = {
                             goalOut.x = this.xFromCol(startCol);
                             goalOut.y = this.yFromRow(i + 1);
 
-                            jb.assert(turns.length > 0, "No turns found!");
-
-                            if (turns[Math.floor(Math.random() * turns.length)] < 0) {
+                            if (turns.length === 0) {
+                                // Blocked! Reverse direction.
+                                goalOut.newHeading = "down";
+                            }
+                            else if (turns[Math.floor(Math.random() * turns.length)] < 0) {
                                 goalOut.newHeading = "left";
                             }
                             else {
@@ -719,9 +723,11 @@ jb.mapTest = {
                             goalOut.x = this.xFromCol(i - 1);
                             goalOut.y = this.yFromRow(startRow);
 
-                            jb.assert(turns.length > 0, "No turns found!");
-
-                            if (turns[Math.floor(Math.random() * turns.length)] < 0) {
+                            if (turns.length === 0) {
+                                // Blocked! Reverse direction.
+                                goalOut.newHeading = "left";
+                            }
+                            else if (turns[Math.floor(Math.random() * turns.length)] < 0) {
                                 goalOut.newHeading = "up";
                             }
                             else {
@@ -752,9 +758,11 @@ jb.mapTest = {
                             goalOut.x = this.xFromCol(startCol);
                             goalOut.y = this.yFromRow(i - 1);
 
-                            jb.assert(turns.length > 0, "No turns found!");
-
-                            if (turns[Math.floor(Math.random() * turns.length)] < 0) {
+                            if (turns.length === 0) {
+                                // Blocked! Reverse direction.
+                                goalOut.newHeading = "up";
+                            }
+                            else if (turns[Math.floor(Math.random() * turns.length)] < 0) {
                                 goalOut.newHeading = "left";
                             }
                             else {
@@ -785,9 +793,11 @@ jb.mapTest = {
                             goalOut.x = this.xFromCol(i + 1);
                             goalOut.y = this.yFromRow(startRow);
 
-                            jb.assert(turns.length > 0, "No turns found!");
-
-                            if (turns[Math.floor(Math.random() * turns.length)] < 0) {
+                            if (turns.length === 0) {
+                                // Blocked! Reverse direction.
+                                goalOut.newHeading = "right";
+                            }
+                            else if (turns[Math.floor(Math.random() * turns.length)] < 0) {
                                 goalOut.newHeading = "up";
                             }
                             else {
@@ -803,7 +813,9 @@ jb.mapTest = {
         else {
             switch(moveDir) {
                 case "up": {
-                    for (var i=startRow - 1; i >= 0; --i) {
+                    var offset = this.isCellClear(startRow - 1, startCol) ? -1 : 0;
+
+                    for (var i=startRow + offset; i >= 0; --i) {
                         if (this.isCellClear(i, startCol)) {
                             var dx = this.turnMatrix[moveDir][turn].dx;
                             var dy = this.turnMatrix[moveDir][turn].dy;
@@ -811,10 +823,12 @@ jb.mapTest = {
                             var row = i + dy;
                             var col = startCol + dx;
         
-                            if (this.isCellTeleporter(row, col)) {
+                            if (this.isCellTeleporter(i, startCol)) {
+                                // Moved straight into a teleporter.
                                 foundGoal = true;
+                                goalOut.y = this.yFromRow(i);
                                 goalOut.x = this.xFromCol(startCol);
-                                goalOut.y = this.yFromRow(row);
+                                goalOut.teleportTo = this.getTeleporterLinkedTo(i, startCol);
                                 // Heading doesn't change.
                                 break;
                             }
@@ -825,6 +839,14 @@ jb.mapTest = {
                                 goalOut.newHeading = turn === 'l' ? "left" : "right";
                                 break;
                             }
+                            else if (finalAttempt && this.isCellClear(i, startCol)) {
+                                // Blocked! Reverse direction.
+                                foundGoal = true;
+                                goalOut.x = this.xFromCol(startCol);
+                                goalOut.y = this.yFromRow(i);
+                                goalOut.newHeading = "down";
+                                // Don't break. Continue to accept goals further away.
+                            }
                         }
                         else {
                             break;
@@ -834,7 +856,9 @@ jb.mapTest = {
                 break;
 
                 case "right": {
-                    for (var i=startCol + 1; i < this.map.length; ++i) {
+                    var offset = this.isCellClear(startRow, startCol + 1) ? 1 : 0;
+
+                    for (var i=startCol + offset; i < this.map.length; ++i) {
                         if (this.isCellClear(startRow, i)) {
                             var dx = this.turnMatrix[moveDir][turn].dx;
                             var dy = this.turnMatrix[moveDir][turn].dy;
@@ -842,10 +866,12 @@ jb.mapTest = {
                             var row = startRow + dy;
                             var col = i + dx;
         
-                            if (this.isCellTeleporter(row, col)) {
+                            if (this.isCellTeleporter(startRow, i)) {
+                                // Moved straight into a teleporter.
                                 foundGoal = true;
-                                goalOut.x = this.xFromCol(startCol);
-                                goalOut.y = this.yFromRow(row);
+                                goalOut.y = this.yFromRow(startRow);
+                                goalOut.x = this.xFromCol(i);
+                                goalOut.teleportTo = this.getTeleporterLinkedTo(startRow, i);
                                 // Heading doesn't change.
                                 break;
                             }
@@ -856,6 +882,14 @@ jb.mapTest = {
                                 goalOut.newHeading = turn === 'l' ? "up" : "down";
                                 break;
                             }
+                            else if (finalAttempt && this.isCellClear(startRow, i)) {
+                                // Blocked! Reverse direction.
+                                foundGoal = true;
+                                goalOut.x = this.xFromCol(i);
+                                goalOut.y = this.yFromRow(startRow);
+                                goalOut.newHeading = "left";
+                                // Don't break. Continue to accept goals further away.
+                            }
                         }
                         else {
                             break;
@@ -865,7 +899,9 @@ jb.mapTest = {
                 break;
 
                 case "down": {
-                    for (var i=startRow + 1; i < this.map[startCol].length; ++i) {
+                    var offset = this.isCellClear(startRow + 1, startCol) ? 1 : 0;
+
+                    for (var i=startRow + offset; i < this.map[startCol].length; ++i) {
                         if (this.isCellClear(i, startCol)) {
                             var dx = this.turnMatrix[moveDir][turn].dx;
                             var dy = this.turnMatrix[moveDir][turn].dy;
@@ -873,10 +909,12 @@ jb.mapTest = {
                             var row = i + dy;
                             var col = startCol + dx;
         
-                            if (this.isCellTeleporter(row, col)) {
+                            if (this.isCellTeleporter(i, startCol)) {
+                                // Moved straight into a teleporter.
                                 foundGoal = true;
+                                goalOut.y = this.yFromRow(i);
                                 goalOut.x = this.xFromCol(startCol);
-                                goalOut.y = this.yFromRow(row);
+                                goalOut.teleportTo = this.getTeleporterLinkedTo(i, startCol);
                                 // Heading doesn't change.
                                 break;
                             }
@@ -887,6 +925,14 @@ jb.mapTest = {
                                 goalOut.newHeading = turn === 'l' ? "right" : "left";
                                 break;
                             }
+                            else if (finalAttempt && this.isCellClear(i, startCol)) {
+                                // Blocked! Reverse direction.
+                                foundGoal = true;
+                                goalOut.x = this.xFromCol(startCol);
+                                goalOut.y = this.yFromRow(i);
+                                goalOut.newHeading = "up";
+                                // Don't break. Continue to accept goals further away.
+                            }
                         }
                         else {
                             break;
@@ -896,7 +942,9 @@ jb.mapTest = {
                 break;
 
                 case "left": {
-                    for (var i=startCol - 1; i >= 0; --i) {
+                    var offset = this.isCellClear(startRow, startCol - 1) ? -1 : 0;
+
+                    for (var i=startCol + offset; i >= 0; --i) {
                         if (this.isCellClear(startRow, i)) {
                             var dx = this.turnMatrix[moveDir][turn].dx;
                             var dy = this.turnMatrix[moveDir][turn].dy;
@@ -904,10 +952,12 @@ jb.mapTest = {
                             var row = startRow + dy;
                             var col = i + dx;
         
-                            if (this.isCellTeleporter(row, col)) {
+                            if (this.isCellTeleporter(startRow, i)) {
+                                // Moved straight into a teleporter.
                                 foundGoal = true;
-                                goalOut.x = this.xFromCol(startCol);
-                                goalOut.y = this.yFromRow(row);
+                                goalOut.y = this.yFromRow(startRow);
+                                goalOut.x = this.xFromCol(i);
+                                goalOut.teleportTo = this.getTeleporterLinkedTo(startRow, i);
                                 // Heading doesn't change.
                                 break;
                             }
@@ -917,6 +967,14 @@ jb.mapTest = {
                                 goalOut.y = this.yFromRow(startRow);
                                 goalOut.newHeading = turn === 'l' ? "down" : "up";
                                 break;
+                            }
+                            else if (finalAttempt && this.isCellClear(startRow, i)) {
+                                // Blocked! Reverse direction.
+                                foundGoal = true;
+                                goalOut.x = this.xFromCol(i);
+                                goalOut.y = this.yFromRow(startRow);
+                                goalOut.newHeading = "right";
+                                // Don't break. Continue to accept goals further away.
                             }
                         }
                         else {
@@ -929,7 +987,8 @@ jb.mapTest = {
         }
 
         if (!foundGoal && turn === 's') {
-            // Let it fail. Only the player should ever reach this point.
+            // Should never get here.
+            jb.assert(false, "Illegal goal state!");
         }
         else if (!foundGoal) {
             jb.assert(!finalAttempt, "Failed to find hunt goal!");
@@ -948,6 +1007,14 @@ jb.mapTest = {
 
             var dx = goalOut.x - bounds.l;
             var dy = goalOut.y - bounds.t;
+
+            var r = this.rowFromY(goalOut.y);
+            var c = this.colFromX(goalOut.x);
+
+            jb.assert(this.isCellTeleporter(r, c) || this.isInBounds(r + 1, c), "Goal out of bounds!");
+            jb.assert(this.isCellTeleporter(r, c) || this.isInBounds(r, c + 1), "Goal out of bounds!");
+            jb.assert(this.isCellTeleporter(r, c) || this.isInBounds(r - 1, c), "Goal out of bounds!");
+            jb.assert(this.isCellTeleporter(r, c) || this.isInBounds(r, c - 1), "Goal out of bounds!");
 
             jb.assert(dirCheck[moveDir].dx * dx >= 0 && dirCheck[moveDir].dy * dy >= 0, "Already past goal!");
         }
