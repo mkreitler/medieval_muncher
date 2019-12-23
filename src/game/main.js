@@ -27,6 +27,7 @@ jb.program = {
   minSize: Number.MAX_VALUE,
   sheets: {},
   clue: null,
+  mapType: null,
   scoreMultiple: 1,
   breadcrumbs: [
     {x: 0, y: 0},
@@ -135,6 +136,7 @@ jb.program = {
     jb.powerups.init(this.sheets.itemTiles, this.SCALE, this.powerupType, this.sheets.fxTiles, jb.mapTest);
     jb.particles.init(this.sheets.fxTiles, this.SCALE);
     jb.treasures.init(this.sheets.itemTiles, jb.mapTest, this.scoreMultiple);
+    jb.mapTest.init(this.mapType);
 
     jb.messages.listen("levelComplete", this);
 
@@ -418,6 +420,7 @@ jb.program.customizeForPassword = function(password) {
     this.monsterType = jb.k.monsterTypes[options.monster];
 
     jb.assert(jb.k.mapTypes.hasOwnProperty(options.tileSet), "Unknown dungeon type!");
+    this.mapType = options.tileSet;
     this.tileSet = jb.k.mapTypes[options.tileSet];
 
     options.powerup = options.powerup.toUpperCase();
