@@ -65,6 +65,7 @@ blueprints.draft(
             this.spriteMoveTo(x, y);
             this.goal.x = x;
             this.goal.y = y;
+            this.goal.teleportTo = null;
             this.iHuntIndex = 0;
             this.visible = true;
 
