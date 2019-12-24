@@ -221,6 +221,8 @@ resources = {
     var path = resourcePath || "./res/sounds/";
 
     soundURL = path + soundURL;
+    nChannels = nChannels || 2;
+    repeatDelaySec = repeatDelaySec || 0.33;
 
     resources.incPendingCount();
 
@@ -8728,7 +8730,7 @@ jb.sound = {
     STOP_ALL_CHANNELS:-1,
     INVALID_CHANNEL:  -99,
       
-    isEnabled:       true,
+    isEnabled:       false,
     isAvailable:     window.Audio,
     preferredFormat: null,
     sounds:          {},
@@ -8760,9 +8762,9 @@ jb.sound = {
           }
         }
 
-        if (!jb.sound.preferredFormat) {
-          jb.sound.isAvailable = false;
-          jb.sound.isEnabled = false;
+        if (jb.sound.preferredFormat) {
+          jb.sound.isAvailable = true;
+          jb.sound.isEnabled = true;
         }
 
         // Procedural audio initialization:
@@ -8804,37 +8806,51 @@ jb.sound = {
         return iChannel;
     },
 
-    play: function(sound, volume) {
-        var totalVolume = typeof(volume) === 'undefined' ? 1 : volume,
-            playedIndex = jb.sound.INVALID_CHANNEL,
-            now = Date.now();
+    setVolume: function(sound, volume) {
+      var totalVolume = typeof(volume) === 'undefined' ? 1 : volume;
 
-        totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
+      totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
 
-        if (sound) {
-            playedIndex = jb.sound.getFreeChannelIndex(sound, now);
-      
-        try {
-            if (playedIndex !== jb.sound.INVALID_CHANNEL) {
-                sound.iChannel = playedIndex;
-                sound.lastPlayTime[playedIndex] = now;
-                sound.channels[playedIndex].pause();
-                sound.channels[playedIndex].loop = false;
-                sound.channels[playedIndex].volume = totalVolume;
-                sound.channels[playedIndex].currentTime = 0;
-                sound.playing[playedIndex] = true;
-                sound.channels[playedIndex].play();
-            }
-        }
-        catch(err) {
-            // Error message?
-        }
-    }
+      var iChannel = 0,
+      iStart = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? 0 : channelIndex,
+      iEnd = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? sound.channels.length - 1 : channelIndex;
 
-    return playedIndex;
+      for (iChannel = iStart; iChannel <= iEnd; ++iChannel) {
+        sound.channels[playedIndex].volume = totalVolume;
+      }
     },
 
-    loop: function(sound, volume) {
+  play: function(sound, volume) {
+    var totalVolume = typeof(volume) === 'undefined' ? 1 : volume,
+        playedIndex = jb.sound.INVALID_CHANNEL,
+        now = Date.now();
+
+    totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
+
+    if (sound) {
+        playedIndex = jb.sound.getFreeChannelIndex(sound, now);
+  
+    try {
+        if (playedIndex !== jb.sound.INVALID_CHANNEL) {
+            sound.iChannel = playedIndex;
+            sound.lastPlayTime[playedIndex] = now;
+            sound.channels[playedIndex].pause();
+            sound.channels[playedIndex].loop = false;
+            sound.channels[playedIndex].volume = totalVolume;
+            sound.channels[playedIndex].currentTime = 0;
+            sound.playing[playedIndex] = true;
+            sound.channels[playedIndex].play();
+        }
+    }
+    catch(err) {
+        // Error message?
+    }
+  }
+
+    return playedIndex;
+  },
+
+  loop: function(sound, volume) {
         var now = Date.now(),
             totalVolume = typeof(volume) === 'undefined' ? 1 : volume,
             playedIndex = jb.sound.INVALID_CHANNEL;

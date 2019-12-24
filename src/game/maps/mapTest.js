@@ -27,7 +27,7 @@ jb.mapTest = {
             "********t4********************************",
             "**............P.........................**",
             "**..**********..**...*********..******..**",
-            "t3..**1.,,2.**..**..............**......**",
+            "t3..**1,,,2,**..**..............**......**",
             "**..****dd****..******..**..**....****..**",
             "**......gg..**..........**..******......**",
             "**..****..****....********..........******",
@@ -36,7 +36,7 @@ jb.mapTest = {
             "**......**........**..****..**..******..**",
             "**..**..****..**......****..**..........t2",
             "**..**..**....****..**..**..**********..**",
-            "**..**......****..s.....**..**3.,,4.**..**",
+            "**..**......****..s.....**..**3,,,4,**..**",
             "**..**..**..******..******..****dd****..**",
             "**......******......**..........gg......**",
             "**..******..**..**..**..********..****..**",
@@ -554,9 +554,11 @@ jb.mapTest = {
 
                     case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': {
                         this.monsterStart.push({x: Math.round((origin.x + x) / scale), y: Math.round((origin.y + y) / scale)});
-                        coinPos.row = iRow;
-                        coinPos.col = iCol;
-                        jb.messages.broadcast("spawnCoin", coinPos);
+                        if (this.map[iRow][iCol * 2 + 1] === '.') {
+                            coinPos.row = iRow;
+                            coinPos.col = iCol;
+                            jb.messages.broadcast("spawnCoin", coinPos);
+                        }
                     }
                     break;
 
@@ -725,8 +727,13 @@ jb.mapTest = {
     },
 
     isCellTeleporter: function(row, col) {
-        jb.assert(this.isInBounds(row, col), "Teleport check out of bounds!");
-        return this.map[row][2 * col] === 't';
+        var isTeleporter = false;
+
+        if (this.isInBounds(row, col)) {
+            isTeleporter = this.map[row][2 * col] === 't';
+        }
+
+        return isTeleporter;
     },
 
     getHuntGoal: function(bounds, moveDir, turn, goalOut, finalAttempt) {

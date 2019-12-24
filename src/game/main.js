@@ -43,6 +43,20 @@ jb.program = {
   ],
   iCrumb: -1,
   debugBreadcrumbs: false,
+  sounds: {
+    cloak_on: {clip: null},
+    collect_powerup: {clip: null},
+    collect_treasure:,
+    died: {clip: null},
+    fireball_launch2: {clip: null},
+    impact_sword: {clip: null},
+    level_start: {clip: null},
+    powerup_sword: {clip: null},
+    spawn_treasure: {clip: null},
+    steps_1: {clip: null},
+    steps_2: {clip: null},
+    victory: {clip: null},
+  },
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -70,11 +84,19 @@ jb.program = {
     this.IMAGES.items = resources.loadImage("oryx_16bit_fantasy_items_trans.png");
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
+    for (var key in this.sounds) {
+      this.sounds[key].clip = resources.loadSound(key);
+    }
+
     resources.loadWebFonts(["VT323"]);
   },
 
   do_waitForResourceLoad: function() {
     jb.until(resources.loadComplete());
+  },
+
+  setup_passwordInput: function() {
+    jb.listenForTap();
   },
 
   do_checkPassword: function() {
@@ -85,19 +107,26 @@ jb.program = {
       jb.setColumns(jb.k.COLUMNS_LARGE);
       jb.printAtXY("Enter Password", jb.canvas.width / 2, jb.canvas.height / 3, 0.5, 0.5);
 
-      jb.setForeColor("yellow");
       jb.setColumns(jb.k.COLUMNS_SMALL);
+      jb.printAtXY("then click to play", jb.canvas.width / 2, jb.canvas.height / 3 + this.SCREEN_HEIGHT / 10, 0.5, 0.5);
+
+      jb.setForeColor("yellow");
       this.input = jb.input;
       if (this.input && this.input.length > 0) {
         jb.printAtXY(this.input, jb.canvas.width / 2, jb.canvas.height * 2 / 3, 0.5, 0.5);
       }
     }
 
-    jb.while(!this.passworedEntered && !jb.isKeyDown("return"));
+    jb.while(!jb.tap.done);
   },
 
   verifyPassword: function() {
     var passwordAccepted = false;
+
+    // Try to init sound (after user click) so we can play the 'fail' clip, if necessary.
+    if (!jb.sound.isEnabled) {
+      jb.sound.init();
+    }
 
     for (var key in jb.customization) {
       if (this.input && key.toLowerCase() === this.input.toLowerCase()) {
@@ -139,6 +168,7 @@ jb.program = {
     jb.mapTest.init(this.mapType);
 
     jb.messages.listen("levelComplete", this);
+    jb.messages.listen("playSound", this);
 
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
     this.origin.y = Math.floor((jb.program.ROWS - jb.mapTest.map.length) / 2) * jb.program.SIZE * jb.program.SCALE;
@@ -455,3 +485,16 @@ jb.program.drawBreadcrumbs = function() {
   jb.ctxt.closePath();
   jb.ctxt.stroke();
 };
+
+jb.program.playSound = function(name) {
+  jb.assert(this.sounds[name], "Unknown sound!");
+
+  jb.sound.play(this.sounds[name].clip);
+};
+
+jb.program.loopSound = function(name) {
+  jb.assert(this.sounds[name], "Unknown sound!");
+
+  jb.sound.play(this.sounds[name].clip);
+};
+
