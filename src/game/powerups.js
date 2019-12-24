@@ -268,6 +268,10 @@ jb.powerups = {
                         if (blockInfo.rightClear) {
                             this.fireballs[1].launch(ownerBounds.l + ownerBounds.halfWidth, blockInfo.yIdeal, true);
                         }
+
+                        if (blockInfo.leftClear || blockInfo.rightClear) {
+                            jb.messages.broadcast("playSound", "fireball_launch2");
+                        }
                     }
                 }
                 else {
@@ -404,7 +408,20 @@ jb.powerups = {
     },
 
     collectPowerup: function(powerup) {
-        jb.assert(powerup, "No powerup to collect!")
+        jb.assert(powerup, "No powerup to collect!");
+
+        jb.messages.broadcast("playSound", "collect_powerup");
+
+        switch(powerup.type) {
+            case jb.powerups.TYPES.SWORD: {
+                jb.messages.broadcast("loopSound", "powerup_sword");
+            }
+            break;
+
+            case jb.powerups.TYPES.CLOAK: {
+                jb.messages.broadcast("playSound", "cloak_on");
+            }
+        }
 
         jb.removeFromArray(this.cache, powerup, false);
         powerup.reset();
@@ -414,6 +431,18 @@ jb.powerups = {
         jb.assert(powerup, "No powerup to collect!")
 
         jb.messages.broadcast("powerupBlinkOn", powerup);
+
+        switch (powerup.type) {
+            case jb.powerups.TYPES.SWORD: {
+                jb.messages.broadcast("stopSound", "powerup_sword");
+            }
+            break;
+
+            case jb.powerups.TYPES.CLOAK: {
+                jb.messages.broadcast("playSound", "cloak_on");
+            }
+            break;
+        }
 
         powerup.visible = false;
         this.cache.push(powerup);

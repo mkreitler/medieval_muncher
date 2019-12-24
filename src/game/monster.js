@@ -37,7 +37,7 @@ blueprints.draft(
         },
 
         update: function(dtMS, map) {
-            this.speed = this.baseSpeed * (1 - (2 - this.level) / 10);
+            this.speed = jb.k.fudgeFactor * this.baseSpeed * (1 - (2 - this.level) / 10);
             if (this.weak) {
                 this.speed *= jb.k.WEAK_SPEED_FACTOR;
             }
@@ -121,6 +121,7 @@ blueprints.draft(
             var value = jb.monster.getKillScore()
             jb.messages.broadcast("spawnPuffParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight));
             jb.messages.broadcast("spawnTextParticle", jb.monster.getParticleInfo(this.bounds.l + this.bounds.halfWidth, this.bounds.t + this.bounds.halfHeight, "" + value));
+            jb.messages.broadcast("playSound", "impact_sword");
             jb.messages.broadcast("scorePoints", value);
         },
 

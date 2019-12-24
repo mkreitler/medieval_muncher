@@ -30,6 +30,7 @@ blueprints.draft(
             this.baseX = x;
             this.baseY = y;
             this.spriteMoveTo(this.baseX, this.baseY);
+            jb.messages.broadcast("playSound", "spawn_treasure");
         },
 
         reset: function() {
@@ -151,6 +152,7 @@ jb.treasures = {
             if (this.active.bounds.overlap(other.bounds)) {
                 var value = this.active.getValue() * this.scoreMultiplier;
                 jb.messages.broadcast("scorePoints", value);
+                jb.messages.broadcast("playSound", "collect_treasure");
                 jb.messages.broadcast("spawnTextParticle", this.getParticleInfo(this.active.bounds.l + this.active.bounds.halfWidth,
                                                                                 this.active.bounds.t + this.active.bounds.halfHeight,
                                                                                 "" + value));

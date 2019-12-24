@@ -8,6 +8,7 @@ blueprints.draft(
         wantDir: null,
         scale: 1,
         powerup: null,
+        map: null,
         wantsInvisibility: false,
         goal: {x: -1, y: -1, newHeading: null, teleportTo: null},
                 testDirs: {
@@ -22,7 +23,10 @@ blueprints.draft(
     // Actions
     {
         coinCollected: function(coin) {
-            // TODO: play a sound here...
+            if (this.coinCollectTimer < jb.k.EPSILON) {
+                // jb.messages.broadcast("playSound", "coin");
+            }
+            this.coinCollectTimer = jb.k.COIN_COLLECT_TIMER;
         },
 
         onCreate: function() {
@@ -44,6 +48,7 @@ blueprints.draft(
             this.powerup = null;
             this.spriteSetAlpha(1.0);
             this.wantsInvisibility = false;
+            this.coinCollectTimer = 0;
         },
 
         collectPowerup: function(powerup) {
@@ -53,7 +58,9 @@ blueprints.draft(
 
             switch(powerup.type) {
                 case jb.powerups.TYPES.SWORD: {
-
+                    // Perform a minimal update on the powerup to sync its position
+                    // before its drawn the first time.
+                    powerup.update(1, this.bounds, this.spriteInfo.scale.x, this.map);
                 }
                 break;
                 
@@ -93,12 +100,19 @@ blueprints.draft(
             this.body2dUpdate(dtMS);
             this.spriteUpdate(dtMS);
 
+            this.coinCollectTimer -= dtMS;
+            this.coinCollectTimer = Math.max(0, this.coinCollectTimer);
+
             this.row = map.rowFromY(this.bounds.t + this.bounds.halfHeight);
             this.col = map.colFromX(this.bounds.l + this.bounds.halfWidth);
 
             if (this.powerup) {
                 this.powerup.update(dtMS, this.bounds, this.spriteInfo.scale.x, map);
             }
+        },
+
+        isCollecting: function() {
+            return this.coinCollectTimer > 0;
         },
 
         checkPowerupCollision: function(other) {
@@ -272,7 +286,7 @@ blueprints.draft(
 blueprints.make("player", ["sprite", "body2d"]);
 
 jb.player = {
-    create: function(tileSheet, x, y, scale, frames, fxSheet) {
+    create: function(tileSheet, x, y, scale, frames, map) {
         var it = blueprints.build("player");
         it.spriteSetSheet(tileSheet);
 
@@ -285,6 +299,7 @@ jb.player = {
         it.spriteSetState("idle");
         it.spriteMoveTo(x, y);
         it.scale = scale;
+        it.map = map;
 
         return it;
     }

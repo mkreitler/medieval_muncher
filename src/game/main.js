@@ -29,6 +29,8 @@ jb.program = {
   clue: null,
   mapType: null,
   scoreMultiple: 1,
+  targetStepVolume: 0,
+  currentStepVolume: 0,
   breadcrumbs: [
     {x: 0, y: 0},
     {x: 0, y: 0},
@@ -46,7 +48,9 @@ jb.program = {
   sounds: {
     cloak_on: {clip: null},
     collect_powerup: {clip: null},
-    collect_treasure:,
+    collect_start: {clip: null},
+    collect_stop: {clip: null},
+    collect_treasure: {clip: null},
     died: {clip: null},
     fireball_launch2: {clip: null},
     impact_sword: {clip: null},
@@ -57,6 +61,8 @@ jb.program = {
     steps_2: {clip: null},
     victory: {clip: null},
   },
+  fudgeFactor: 1.0,
+  useStepSounds: false,
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -85,7 +91,7 @@ jb.program = {
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
     for (var key in this.sounds) {
-      this.sounds[key].clip = resources.loadSound(key);
+      this.sounds[key].clip = resources.loadSound(key + ".ogg");
     }
 
     resources.loadWebFonts(["VT323"]);
@@ -135,8 +141,8 @@ jb.program = {
     }
 
     if (!passwordAccepted) {
-      // TODO: play a buzzer to indicate failure.
       jb.clearInput();
+      jb.listenForTap();
       jb.goto("do_checkPassword");
     }
     else {
@@ -169,6 +175,11 @@ jb.program = {
 
     jb.messages.listen("levelComplete", this);
     jb.messages.listen("playSound", this);
+    jb.messages.listen("loopSound", this);
+    jb.messages.listen("stopSound", this);
+    jb.messages.listen("muteSound", this);
+    jb.messages.listen("unmuteSound", this);
+    jb.messages.listen("stopAllSounds", this);
 
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
     this.origin.y = Math.floor((jb.program.ROWS - jb.mapTest.map.length) / 2) * jb.program.SIZE * jb.program.SCALE;
@@ -179,7 +190,7 @@ jb.program = {
   buildLevel: function() {
     jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.sheets.worldTiles, this.tileSet.row, this.tileSet.doorRow, this.tileSet.doorCol);
 
-    this.player = jb.player.create(this.sheets.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE, this.playerFrames);
+    this.player = jb.player.create(this.sheets.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE, this.playerFrames, jb.mapTest);
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i] = jb.monster.create(this.sheets.creatureTiles, this.monsterType.idleRow, this.monsterType.idleCol, this.monsterType.weakRow, this.monsterType.weakCol);
@@ -230,11 +241,25 @@ jb.program = {
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].start(jb.mapTest, this.level);
     }
+
+    this.loopSound("steps_2");
+    if (this.useStepSounds) {
+      this.loopSound("steps_1");
+      this.muteSound("steps_1");
+    }
+    this.currentStepVolume = 0;
+    this.targetStepVolume = 0;
+
+    this.playSound("level_start");
   },
 
   do_main_game_loop: function() {
     var dtMS = jb.time.deltaTimeMS;
     var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed * (1 - (this.level - 1) / 10));
+    var moveDir = this.getMoveDirection();
+
+    // Update sound volumes outside the physics loop.
+    this.updateStepSounds(this.player.isCollecting(), dtMS);
     
     while (!this.died && dtMS > jb.k.EPSILON) {
       maxDt = Math.min(maxDt, dtMS);
@@ -244,7 +269,6 @@ jb.program = {
       jb.clear();
       jb.mapTest.draw(jb.ctxt, this.origin);
   
-      var moveDir = this.getMoveDirection();
       this.player.update(moveDir, maxDt, jb.mapTest);
 
       if (this.debugBreadcrumbs) {
@@ -292,6 +316,10 @@ jb.program = {
   },
 
   gameOver: function() {
+    this.stopAllSounds();
+    this.targetStepVolume = 0;
+    this.currentStepVolume = 0;
+
     if (this.gameState === this.GAME_STATE.DIED) {
       jb.goto("playerDied");
     }
@@ -302,7 +330,10 @@ jb.program = {
 
   // Gosubs ///////////////////////////////////////////////////////////////////
   playerDied: function() {
+    this.playSound("died");
     jb.startTimer("uiClock");
+    jb.k.fudgeFactor -= jb.k.FUDGE_REDUCTION;
+    jb.k.fudgeFactor = Math.max(jb.k.fudgeFactor, jb.k.MIN_FUDGE_FACTOR);
   },
 
   do_spinPlayer: function() {
@@ -339,7 +370,9 @@ jb.program = {
   },
 
   playerWon: function() {
+    this.playSound("victory");
     jb.startTimer("uiClock");
+    jb.k.fudgeFactor = 1.0;
   },
 
   do_flashBoard: function() {
@@ -377,6 +410,39 @@ jb.program = {
 };
 
 // Procedures and Functions ///////////////////////////////////////////////////
+jb.program.updateStepSounds = function(playerIsMoving, dtMS) {
+  if (this.useStepSounds) {
+    if (playerIsMoving) {
+      this.targetStepVolume = 1;
+    }
+    else {
+      this.targetStepVolume = 0;
+    }
+
+    var dv = this.targetStepVolume - this.currentStepVolume;
+    var maxDv = dtMS /jb.k.STEP_FADE_TIME * (1.0 - 0.0);
+
+    if (dv !== 0) {
+      if (dv < 0) {
+        dv *= -1;
+        dv = Math.min(dv, maxDv);
+        dv *= -1;
+        this.currentStepVolume += dv;
+      }
+      if (Math.abs(dv) > maxDv) {
+        dv = Math.min(dv, maxDv);
+        this.currentStepVolume += dv;
+      }
+
+      if (Math.abs(this.targetStepVolume - this.currentStepVolume) < jb.k.EPSILON) {
+        this.currentStepVolume = this.targetStepVolume;
+      }
+
+      jb.sound.setVolume(this.sounds["steps_1"].clip, this.currentStepVolume);
+    }
+  }
+};
+
 jb.program.didCollide = function(mover, obstacle) {
   var dx = Math.abs(mover.bounds.l - obstacle.bounds.l);
   var dy = Math.abs(mover.bounds.t - obstacle.bounds.t);
@@ -495,6 +561,27 @@ jb.program.playSound = function(name) {
 jb.program.loopSound = function(name) {
   jb.assert(this.sounds[name], "Unknown sound!");
 
-  jb.sound.play(this.sounds[name].clip);
+  jb.sound.loop(this.sounds[name].clip);
 };
 
+jb.program.stopSound = function(name) {
+  jb.assert(this.sounds[name], "Unknown sound!");
+
+  jb.sound.stop(this.sounds[name].clip);
+};
+
+jb.program.muteSound = function(name) {
+  jb.assert(this.sounds[name], "Unknown sound!");
+
+  jb.sound.setVolume(this.sounds[name].clip, 0);
+};
+
+jb.program.unmuteSound = function(name) {
+  jb.assert(this.sounds[name], "Unknown sound!");
+
+  jb.sound.setVolume(this.sounds[name].clip, 1);
+};
+
+jb.program.stopAllSounds = function() {
+  jb.sound.stopAll();
+};
