@@ -100,7 +100,7 @@ jb.program = {
     var passwordAccepted = false;
 
     for (var key in jb.customization) {
-      if (key.toLowerCase() === this.input.toLowerCase()) {
+      if (this.input && key.toLowerCase() === this.input.toLowerCase()) {
         passwordAccepted = true;
       }
     }

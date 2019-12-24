@@ -113,6 +113,7 @@ blueprints.draft(
             this.moveState = this.msDie;
             this.deathPoint.x = this.bounds.l;
             this.deathPoint.y = this.bounds.t;
+            this.goal.teleportTo = null;
 
             jb.monster.bumpKillMultiple();
 

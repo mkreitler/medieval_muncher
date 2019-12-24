@@ -2995,14 +2995,16 @@ jb.onDown = function(e) {
       dt = jb.DOUBLE_TAP_INTERVAL;
     }
     
-    if (key.waitingForPress) {
-      key.pressCount = 1;
-    }
-    else {
-      key.pressCount = -1;
-    }
+    if (key) {
+      if (key.waitingForPress) {
+        key.pressCount = 1;
+      }
+      else {
+        key.pressCount = -1;
+      }
 
-    key.wasPressed = false;
+      key.wasPressed = false;
+    }
 
     if (jb.keys[lookupCode].gesture === jb.GESTURE.NONE) {
       jb.keys[lookupCode].gesture = jb.GESTURE.BUSY;

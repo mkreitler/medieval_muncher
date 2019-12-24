@@ -58,7 +58,7 @@ blueprints.draft(
 
                 var row = map.rowFromY(this.bounds.t + this.bounds.halfHeight);
                 var col = map.colFromX(this.bounds.l + this.bounds.halfWidth);
-                if (map.isPlayerBlocked(row, col) || !map.isInBounds(row, col)) {
+                if (map.isPlayerBlocked(row, col) || !map.isInBounds(row, col) || map.isCellTeleporter(row, col)) {
                     this.despawn();
                 }
             }
