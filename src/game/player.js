@@ -24,15 +24,16 @@ blueprints.draft(
     {
         coinCollected: function(coin) {
             if (this.coinCollectTimer < jb.k.EPSILON) {
-                // jb.messages.broadcast("playSound", "coin");
+                jb.messages.broadcast("playCoinSound");
+                this.coinCollectTimer = jb.k.COIN_COLLECT_TIMER * (1.0 + (Math.random() - 0.5) * jb.k.COIN_COLLECT_TIME_VARIANCE);
             }
-            this.coinCollectTimer = jb.k.COIN_COLLECT_TIMER;
         },
 
         onCreate: function() {
             jb.messages.listen("coinCollected", this);
             jb.messages.listen("collectPowerup", this);
             jb.messages.listen("dropPowerup", this);
+            jb.messages.listen("levelComplete", this);
         },
 
         reset: function(map, tileSize) {
@@ -93,6 +94,12 @@ blueprints.draft(
 
             this.wantsInvisibility = false;
             this.spriteSetAlpha(1.0);
+        },
+
+        levelComplete: function() {
+            if (this.powerup) {
+                this.dropPowerup(this.powerup);
+            }
         },
 
         update: function(dir, dtMS, map) {

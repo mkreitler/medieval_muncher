@@ -60,9 +60,17 @@ jb.program = {
     steps_1: {clip: null},
     steps_2: {clip: null},
     victory: {clip: null},
+    coins01: {clip: null},
+    coins02: {clip: null},
+    coins03: {clip: null},
+    coins04: {clip: null},
+    coins05: {clip: null},
+    coins06: {clip: null},
   },
   fudgeFactor: 1.0,
   useStepSounds: false,
+  coinSounds: [],
+  lastCoinSoundIndex: -1,
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
@@ -92,6 +100,9 @@ jb.program = {
 
     for (var key in this.sounds) {
       this.sounds[key].clip = resources.loadSound(key + ".ogg");
+      if (key.indexOf("coin") >= 0) {
+        this.coinSounds.push(key);
+      }
     }
 
     resources.loadWebFonts(["VT323"]);
@@ -180,6 +191,7 @@ jb.program = {
     jb.messages.listen("muteSound", this);
     jb.messages.listen("unmuteSound", this);
     jb.messages.listen("stopAllSounds", this);
+    jb.messages.listen("playCoinSound", this);
 
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
     this.origin.y = Math.floor((jb.program.ROWS - jb.mapTest.map.length) / 2) * jb.program.SIZE * jb.program.SCALE;
@@ -188,7 +200,7 @@ jb.program = {
   },
   
   buildLevel: function() {
-    jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.sheets.worldTiles, this.tileSet.row, this.tileSet.doorRow, this.tileSet.doorCol);
+    jb.mapTest.create(this.SIZE, this.SCALE, this.origin, this.sheets.worldTiles, this.tileSet.row, this.tileSet.doorRow, this.tileSet.doorCol, this.tileSet.floorRow, this.tileSet.floorCol);
 
     this.player = jb.player.create(this.sheets.creatureTiles, jb.mapTest.startX(), jb.mapTest.startY(), this.SCALE, this.playerFrames, jb.mapTest);
 
@@ -251,6 +263,28 @@ jb.program = {
     this.targetStepVolume = 0;
 
     this.playSound("level_start");
+    jb.startTimer("uiClock")
+  },
+
+  do_flashPlayer: function() {
+    var param = Math.floor(jb.timer("uiClock") / jb.k.LEVEL_START_DELAY * jb.k.LEVEL_START_PLAYER_FLASHES);
+
+    jb.clear();
+    jb.mapTest.draw(jb.ctxt, this.origin);
+    jb.bank.draw(jb.ctxt, jb.mapTest);
+    jb.powerups.draw(jb.ctxt, jb.mapTest);
+    jb.treasures.draw(jb.ctxt);
+
+    if (param % 2 === 0) {
+      this.player.draw(jb.ctxt);
+    }
+
+    for (var i=0; i<this.monsters.length; ++i) {
+      this.monsters[i].draw(jb.ctxt);
+    }
+    jb.particles.draw(jb.ctxt);
+    
+  jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
   },
 
   do_main_game_loop: function() {
@@ -259,7 +293,7 @@ jb.program = {
     var moveDir = this.getMoveDirection();
 
     // Update sound volumes outside the physics loop.
-    this.updateStepSounds(this.player.isCollecting(), dtMS);
+    // this.updateStepSounds(this.player.isCollecting(), dtMS);
     
     while (!this.died && dtMS > jb.k.EPSILON) {
       maxDt = Math.min(maxDt, dtMS);
@@ -584,4 +618,19 @@ jb.program.unmuteSound = function(name) {
 
 jb.program.stopAllSounds = function() {
   jb.sound.stopAll();
+};
+
+jb.program.playCoinSound = function() {
+  var randIndex = Math.floor(Math.random() * this.coinSounds.length);
+
+  if (randIndex >= 0 && randIndex < this.coinSounds.length) {
+    if (randIndex === this.lastCoinSoundIndex) {
+      randIndex += 1;
+      randIndex %= this.coinSounds.length;
+    }
+
+    this.lastCoinSoundIndex = randIndex;
+
+    this.playSound(this.coinSounds[randIndex]);
+  }
 };

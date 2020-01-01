@@ -509,7 +509,13 @@ jb.mapTest = {
         this.map = this.maps[mapType];
     },
 
-    create: function(tileSize, scale, origin, tiles, tileRow, doorRow, doorCol) {
+    drawFloor: function(ctxt, tiles, floorRow, floorCol, x, y) {
+        if (floorRow >= 0 && floorCol >= 0) {
+            tiles.draw(ctxt, floorRow, floorCol, x, y);  
+        }
+    },
+
+    create: function(tileSize, scale, origin, tiles, tileRow, doorRow, doorCol, floorRow, floorCol) {
         var coinPos = {row: -1, col: -1};
         this.canvas = document.createElement("canvas");
         this.canvas.width = this.map[0].length / 2 * tileSize * scale;
@@ -543,17 +549,25 @@ jb.mapTest = {
                     case '.': {
                         coinPos.row = iRow;
                         coinPos.col = iCol;
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);
                         jb.messages.broadcast("spawnCoin", coinPos);
                     }
                     break;
 
+                    case ',': {
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
+                    }
+                    break;
+
                     case 'd': {
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
                         tiles.draw(ctxt, doorRow, doorCol, x, y);  
                     }
                     break;
 
                     case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': {
                         this.monsterStart.push({x: Math.round((origin.x + x) / scale), y: Math.round((origin.y + y) / scale)});
+                        tiles.draw(ctxt, floorRow, floorCol, x, y);  
                         if (this.map[iRow][iCol * 2 + 1] === '.') {
                             coinPos.row = iRow;
                             coinPos.col = iCol;
@@ -566,6 +580,7 @@ jb.mapTest = {
                         this.monsterGoals.push({x: Math.round((origin.x + x)), y: Math.round((origin.y + y))});
                         coinPos.row = iRow;
                         coinPos.col = iCol;
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
                         jb.messages.broadcast("spawnCoin", coinPos);
                     }
                     break;
@@ -573,6 +588,7 @@ jb.mapTest = {
                     case 's': {
                         this.start.x = Math.round((origin.x + x) / scale);
                         this.start.y = Math.round((origin.y + y) / scale);
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
                     }
                     break;
 
@@ -580,15 +596,15 @@ jb.mapTest = {
                         this.teleporters.push({row: iRow, col: iCol, x: this.xFromCol(iCol) / this.scale, y: this.yFromRow(iRow) / this.scale, linked: parseInt(this.map[iRow][2 * iCol + 1]) - 1});
                         coinPos.row = iRow;
                         coinPos.col = iCol;
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
                         jb.messages.broadcast("spawnCoin", coinPos);
                     }
                     break;
 
                     case 'P': {
-                        // var powerupType = parseInt(this.map[iRow][iCol * 2 + 1]);
                         powerupInfo.row = iRow;
                         powerupInfo.col = iCol;
-                        // powerupInfo.type = powerupType;
+                        this.drawFloor(ctxt, tiles, floorRow, floorCol, x, y);  
                         jb.messages.broadcast("spawnPowerup", powerupInfo);
                     }
                     break;

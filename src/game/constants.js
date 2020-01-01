@@ -1,6 +1,8 @@
 jb.k = {
     fudgeFactor: 1,
-    FUDGE_REDUCTION: 0.1,
+    LEVEL_START_DELAY: 2.75,
+    LEVEL_START_PLAYER_FLASHES: 10,
+    FUDGE_REDUCTION: 0.0, // was 0.1
     MIN_FUDGE_FACTOR: 0.5,
     EPSILON: 0.001,
     COLUMNS_LARGE: 40,
@@ -9,7 +11,8 @@ jb.k = {
     IDLE_DT: 1000,
     ANIM_DT: 250,
     STEP_FADE_TIME: 250,
-    COIN_COLLECT_TIMER: 500,
+    COIN_COLLECT_TIMER: 333,
+    COIN_COLLECT_TIME_VARIANCE: 0.25,
     FAST_ANIM_DT: 67,
     DEATH_ALPHA: 0.33,
     SLIP_THROUGH_SIZE: 0.99,
@@ -86,9 +89,9 @@ jb.k = {
     },
     
     mapTypes: {
-      "dungeon": {row: 13, doorRow: 3, doorCol: 28},
-      "crypt": {row: 21, doorRow: 2, doorCol: 39},
-      "labyrinth": {row: 5, doorRow: 2, doorCol: 41}
+      "dungeon": {row: 13, doorRow: 3, doorCol: 28, floorRow: 16, floorCol: 0},
+      "crypt": {row: 21, doorRow: 2, doorCol: 39, floorRow: -1, floorCol: -1},
+      "labyrinth": {row: 5, doorRow: 2, doorCol: 41, floorRow: 16, floorCol: 0}
     },
   
     monsterTypes: {

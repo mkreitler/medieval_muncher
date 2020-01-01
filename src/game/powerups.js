@@ -148,6 +148,7 @@ jb.powerups = {
         jb.messages.listen("spawnPowerup", this);
         jb.messages.listen("collectPowerup", this);
         jb.messages.listen("dropPowerup", this);
+        jb.messages.listen("powerupStop", this);
         this.cache.length = 0;
     },
 
@@ -445,7 +446,13 @@ jb.powerups = {
         }
 
         powerup.visible = false;
-        this.cache.push(powerup);
+        this.powerupStop(powerup);
+    },
+
+    powerupStop: function(powerup) {
+        if (this.cache.indexOf(powerup) < 0) {
+            this.cache.push(powerup);
+        }
     },
 
     draw: function(ctxt, map) {
