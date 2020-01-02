@@ -98,12 +98,22 @@ jb.program = {
     this.IMAGES.items = resources.loadImage("oryx_16bit_fantasy_items_trans.png");
     this.IMAGES.fx = resources.loadImage("oryx_16bit_scifi_FX_sm_trans.png");
 
+    jb.sound.createGroup("coins", 1);
+    jb.sound.createGroup("themes", 10);
+
     for (var key in this.sounds) {
       this.sounds[key].clip = resources.loadSound(key + ".ogg");
       if (key.indexOf("coin") >= 0) {
         this.coinSounds.push(key);
+        jb.sound.setGroup(this.sounds[key], "coins");
       }
     }
+
+    jb.sound.setGroup(this.sounds["level_start"], "themes");
+    jb.sound.setGroup(this.sounds["victory"], "themes");
+    jb.sound.setGroup(this.sounds["died"], "themes");
+    jb.sound.setGroup(this.sounds["spawn_treasure"], "themes");
+    jb.sound.setGroup(this.sounds["collect_treasure"], "themes");
 
     resources.loadWebFonts(["VT323"]);
   },

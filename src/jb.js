@@ -2171,6 +2171,7 @@ jb.loop = function() {
   jb.stateMachines.update();
   jb.messages.update();
   jb.transitions.update();
+  jb.sound.update();
   jb.updateKeys();
   jb.updateTouchButtons();
 
@@ -8863,11 +8864,129 @@ jb.sound = {
   DEFAULT_DELAY: 0.1,
   STOP_ALL_CHANNELS: -1,
   INVALID_CHANNEL: -99,
+  VOL_DECAY_RATE: Math.log(8) / 100.0,
+  LOOPING_DUCK_TIME: 10000,
 
   isEnabled: false,
   isAvailable: window.Audio,
   preferredFormat: null,
   sounds: {},
+  groups: {},
+  groupList: [],
+  groupIndex: -1,
+  duckVolume: 0.5,
+
+  setDuckVolume: function(newDuckVolume) {
+    jb.sound.duckVolume = newDuckVolume;
+  },
+
+  update: function() {
+    var decay = Math.exp(-jb.time.deltaTimeMS * jb.sound.VOL_DECAY_RATE);
+
+    jb.sound.updateDucking();
+
+    for (var key in jb.sound.sounds) {
+      var sound = jb.sound.sounds[key];
+
+      for (var i=0; i<sound.channels.length; ++i) {
+        sound.info[i].killVol = (sound.info[i].wantKillVol + (sound.info[i].killVol - sound.info[i].wantKillVol) * decay);
+        sound.info[i].duckVol = (sound.info[i].wantDuckVol + (sound.info[i].duckVol - sound.info[i].wantDuckVol) * decay);
+        sound.info[i].curVol = (sound.info[i].volume + (sound.info[i].curVol - sound.info[i].volume) * decay);
+
+        var totalVolume = sound.info[i].curVol * Math.min(sound.info[i].duckVol * sound.info[i].killVol) * jb.sound.masterVolume;
+        totalVolume = jb.sound.clampVolume(totalVolume);
+        sound.channels[i].volume = totalVolume;
+
+        if (sound.info[i].killVol < jb.EPSILON && sound.info[i].wantKillVol < jb.EPSILON) {
+          jb.sound.stopChannel(sound, i);
+        }
+      }
+    }
+  },
+
+  updateDucking: function() {
+    var duckIndex = -1;
+    for (var i=0; i<jb.sound.groupList.length; ++i) {
+      var group = jb.sound.groupList[i];
+      if (group.duckTimer > jb.EPSILON || group.duckTimer <= -jb.LOOPING_DUCK_TIME) {
+        if (group.duckTimer >= 0) {
+          group.duckTimer -= jb.time.deltaTime;
+          group.duckTimer = Math.max(0, group.duckTimer);
+        }
+
+        if (duckIndex === -1) {
+          duckIndex = i;
+
+          // Duck every sound below this one.
+          for (var iGroup=i+1; iGroup<jb.sound.groupList.length; ++iGroup) {
+            var duckGroup = jb.sound.groupList[iGroup];
+            for (var iSound=0; iSound<duckGroup.sounds.length; ++iSound) {
+              duckGroup.sounds[iSound].wantDuckVol = jb.sound.duckVolume;
+            }
+          }
+        }
+      }
+      else if (duckIndex === -1) {
+        // Un-duck all the sounds up to the first group that
+        // wants ducking.
+        group.duckTimer = 0;
+        for (var iSound=0; iSound<group.sounds.length; ++iSound) {
+          group.sounds[iSound].wantDuckVol = 1.0;
+        }
+      }
+      else {
+        group.duckTimer = 0;
+      }
+    }
+  },
+
+  duckSounds: function(sound) {
+      if (sound && sound.groupName && jb.sound.groups.hasOwnProperty(sound.groupName)) {
+        var group = jb.sound.groups[sound.groupName];
+        if (sound.channels[0].loop) {
+          group.duckTimer = -jb.LOOPING_DUCK_TIME;
+        }
+        else {
+          group.duckTimer = sound.channels[0].duration;
+        }
+      }
+  },
+
+  // Only one sound from each group is allowed to play.
+  // When a group plays, if forces all groups beneath it
+  // (in priority) to 'duck'.
+  createGroup: function(name, priority) {
+    jb.sound.groupIndex += 1;
+
+    name = name || "sound_group_" + jb.sound.groupIndex;
+    priority = priority || 1
+
+    jb.sound.addGroup(name, {sounds: [], priority: priority, duckTimer: 0});
+  },
+
+  addGroup: function(name, group) {
+    jb.sound.groups[name] = group;
+    jb.sound.groupList.push(group);
+
+    for (var iOuter=0; iOuter<jb.sound.groupList.length - 1; ++iOuter) {
+      var bestPriority = jb.sound.groupList[iOuter];
+      var bestIndex = iOuter;
+
+      for (var iInner=iOuter+1; iInner<jb.sound.groupList.length; ++iInner) {
+        var testPriority = jb.sound.groupList[iInner].priority;
+        if (bestPriority < testPriority) {
+          bestPriority = testPriority;
+          bestIndex = iInner;
+        }
+      }
+
+      if (bestIndex !== iOuter) {
+        var temp = jb.sound.groupList[bestIndex];
+        jb.sound.groupList[bestIndex] = jb.sound.groupList[iOuter];
+        jb.sound.groupList[iOuter] = temp;
+      }
+    }
+  },
 
   masterVolume: 1.0,
   audioContext: null,
@@ -8930,7 +9049,7 @@ jb.sound = {
       var mostDelay = 0;
       var testDelay = 0;
 
-      if (sound && sound.channels.length && sound.playing.length && sound.lastPlayTime.length) {
+      if (sound && sound.channels.length && sound.info.length && sound.lastPlayTime.length) {
           for (var i = 0; i < sound.channels.length; ++i) {
               testDelay = (now - sound.lastPlayTime[i]) * 0.003;
               if (testDelay > mostDelay && testDelay > sound.minDelay) {
@@ -8945,6 +9064,10 @@ jb.sound = {
 
   setVolume: function(sound, volume) {
       var totalVolume = typeof(volume) === 'undefined' ? 1 : volume;
+      var channelIndex = jb.sound.channels.indexOf(sound);
+      if (channelIndex >= 0) {
+        jb.sound.info[channelIndex].volume = totalVolume;
+      }
 
       totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
 
@@ -8953,7 +9076,9 @@ jb.sound = {
           iEnd = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? sound.channels.length - 1 : channelIndex;
 
       for (iChannel = iStart; iChannel <= iEnd; ++iChannel) {
+          sound.channels[iChannel].pause();
           sound.channels[iChannel].volume = totalVolume;
+          sound.channels[iChannel].play();
       }
   },
 
@@ -8965,6 +9090,8 @@ jb.sound = {
       totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
 
       if (sound) {
+          jb.sound.stopSoundsInGroup(sound.groupName);
+
           playedIndex = jb.sound.getFreeChannelIndex(sound, now);
 
           try {
@@ -8975,8 +9102,12 @@ jb.sound = {
                   sound.channels[playedIndex].loop = false;
                   sound.channels[playedIndex].volume = totalVolume;
                   sound.channels[playedIndex].currentTime = 0;
-                  sound.playing[playedIndex] = true;
+                  sound.info[playedIndex].playing = true;
+                  sound.info[playedIndex].volume = totalVolume;
+                  sound.info[playedIndex].curVol = totalVolume;
                   sound.channels[playedIndex].play();
+
+                  jb.sound.duckSounds(sound);
               }
           } catch (err) {
               // Error message?
@@ -8994,7 +9125,9 @@ jb.sound = {
       totalVolume = jb.sound.clampVolume(totalVolume * jb.sound.getMasterVolume());
 
       if (sound) {
-          playedIndex = jb.sound.getFreeChannelIndex(sound, now);
+        jb.sound.stopSoundsInGroup(sound.groupName);
+
+        playedIndex = jb.sound.getFreeChannelIndex(sound, now);
 
           try {
               if (playedIndex !== jb.sound.INVALID_CHANNEL) {
@@ -9004,8 +9137,12 @@ jb.sound = {
                   sound.channels[playedIndex].loop = true;
                   sound.channels[playedIndex].volume = totalVolume;
                   sound.channels[playedIndex].currentTime = 0;
-                  sound.playing[playedIndex] = true;
+                  sound.info[playedIndex].playing = true;
+                  sound.info[playedIndex].volume = totalVolume;
+                  sound.info[playedIndex].curVol = totalVolume;
                   sound.channels[playedIndex].play();
+
+                  jb.sound.duckSounds(sound);
               }
           } catch (err) {
               // Error message?
@@ -9021,8 +9158,9 @@ jb.sound = {
           iEnd = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? sound.channels.length - 1 : channelIndex;
 
       for (iChannel = iStart; iChannel <= iEnd; ++iChannel) {
+          jb.sound.endDucking(sound, iChannel);
           sound.channels[iChannel].pause();
-          sound.playing[iChannel] = false;
+          sound.info[iChannel].playing = false;
       }
   },
 
@@ -9031,9 +9169,11 @@ jb.sound = {
           iStart = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? 0 : channelIndex,
           iEnd = typeof(channelIndex) === 'undefined' || channelIndex === jb.sound.INVALID_CHANNEL ? sound.channels.length - 1 : channelIndex;
 
+      jb.sound.duckSounds(sound);
+
       for (iChannel = iStart; iChannel <= iEnd; ++iChannel) {
           sound.channels[iChannel].play();
-          sound.playing[iChannel] = true;
+          sound.info[iChannel].playing = true;
       }
   },
 
@@ -9051,10 +9191,7 @@ jb.sound = {
 
       try {
           for (iChannel = iStart; iChannel <= iEnd; ++iChannel) {
-              sound.channels[iChannel].pause();
-              sound.channels[iChannel].loop = false;
-              sound.channels[iChannel].currentTime = 0;
-              sound.playing[iChannel] = false;
+              jb.sound.stopChannel(sound, iChannel);
           }
       } catch (err) {
           // Error message?
@@ -9067,6 +9204,48 @@ jb.sound = {
       for (key in jb.sound.sounds) {
           jb.sound.stop(jb.sound.sounds[key], jb.sound.STOP_ALL_CHANNELS);
       }
+  },
+
+  stopChannel: function(sound, iChannel) {
+    jb.sound.endDucking(sound, iChannel);
+
+    sound.channels[iChannel].pause();
+    sound.channels[iChannel].loop = false;
+    sound.channels[iChannel].currentTime = 0;
+    sound.info[iChannel].playing = false;
+  },
+
+  endDucking: function(sound, iChannel) {
+    if (sound.info[iChannel].playing && jb.sound.groups.hasOwnProperty(sound.groupName)) {
+      // If this was the active sound in the group, make sure to undo ducking.
+      var group = jb.sound.groups[sound.groupName];
+      group.duckTimer = 0;
+    }
+  },
+
+  setGroup: function(sound, groupName) {
+    jb.assert(jb.sound.groups.hasOwnProperty(groupName), "No such sound group!");
+
+    if (jb.sound.groups[groupName].sounds.indexOf(sound) < 0) {
+      if (sound && sound.info) {
+        for (var i=0; i<sound.info.length; ++i) {
+          sound.info[i].group = groupName;
+        }
+      }
+
+      if (jb.sound.groups[groupName].sounds.indexOf(sound) < 0) {
+        jb.sound.groups[groupName].sounds.push(sound);
+      }
+    }
+  },
+
+  stopSoundsInGroup: function(name) {
+    if (jb.sound.groups.hasOwnProperty(name)) {
+      var group = jb.sound.groups[name];
+      for (var i=0; i<group.sounds.length; ++i) {
+        group.sounds[i].wantKillVol = 0;
+      }
+    }
   },
 
   setMasterVolume: function(newMasterVolume) {
@@ -9084,7 +9263,6 @@ jb.sound = {
   load: function(resourceName, onLoadedCallback, onErrorCallback, nChannels, replayDelay) {
       var numChannels = nChannels || jb.sound.DEFAULT_CHANNELS,
           minReplayDelay = replayDelay || jb.sound.DEFAULT_DELAY,
-
           path = resourceName,
           extension = path.substring(path.lastIndexOf(".")),
           nNewChannels = 0,
@@ -9104,7 +9282,7 @@ jb.sound = {
               if (!jb.sound.sounds[resourceName]) {
                   jb.sound.sounds[resourceName] = {
                       channels: [],
-                      playing: [],
+                      info: [],
                       lastPlayTime: [],
                       minDelay: minReplayDelay,
                   };
@@ -9136,7 +9314,7 @@ jb.sound = {
                   newChannel.preload = "auto";
                   newChannel.load();
                   jb.sound.sounds[resourceName].channels.push(newChannel);
-                  jb.sound.sounds[resourceName].playing.push(false);
+                  jb.sound.sounds[resourceName].info.push({volume: 1, group: null, playing: false, wantKillVol: 1, killVol: 1, wantDuckVol: 1, duckVol: 1, curVol: 1});
                   jb.sound.sounds[resourceName].lastPlayTime.push(0);
               }
           }
