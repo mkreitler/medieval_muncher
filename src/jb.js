@@ -2662,6 +2662,14 @@ jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect) {
   var widthScale = pixelPerfect ? Math.floor(windowSize.width / aspectWidth) : windowSize.width / aspectWidth;
   var heightScale = pixelPerfect ? Math.floor(windowSize.height / aspectHeight) : windowSize.height / aspectHeight;
   var scale = Math.min(widthScale, heightScale);
+
+  if (scale === 0 && pixelPerfect) {
+    scale = jb.resizeToWindow(aspectWidth, aspectHeight, false);
+    scale = 1.0 / scale;
+    var scaleLog = Math.floor(Math.log(scale) / Math.log(2) + 0.99999);
+    scale = 1.0 / Math.pow(2, scaleLog);
+  }
+
   this.resize(aspectWidth * scale, aspectHeight * scale);
   jb.setViewScale(scale);
   return scale;
