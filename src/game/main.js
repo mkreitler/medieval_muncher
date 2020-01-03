@@ -81,6 +81,8 @@ jb.program = {
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
     this.SCALE = jb.resizeToWindow(this.COLS * this.SIZE, this.ROWS * this.SIZE, false);
+    this.SCALE *= 0.95;
+    jb.setViewScale(this.SCALE);
 
     for (var i=0; i<jb.k.NUM_MONSTERS; ++i) {
       this.monsters.push(null);
@@ -226,7 +228,7 @@ jb.program = {
     var iMessage = 0;
     var frame = time % 2;
     var iRow = 0;
-    var x0 = this.SCREEN_WIDTH / 5;
+    var x0 = this.SCREEN_WIDTH / 4.9;
     var y0 = this.SCREEN_HEIGHT / 1.9;
     var spacer = this.SCREEN_WIDTH / 20;
 
@@ -242,9 +244,8 @@ jb.program = {
     for (var key in jb.k.playerTypes) {
       var y = y0 + iRow * spacer;
       var animInfo = jb.k.playerTypes[key].frames.walk[frame];
-      this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, 50, 50, 0.5, 0.5);
-      this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, x0, y, 0.5, 0.5);
-      jb.printAtXY(jb.k.instructions[iMessage++], this.SCREEN_WIDTH / 2, y, 0.5, 0.5);
+      this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, x0, y, 0, 0.5);
+      jb.printAtXY(jb.k.instructions[iMessage++], x0 + spacer, y, 0, 0.5);
       ++iRow;
     }
 
