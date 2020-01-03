@@ -568,6 +568,9 @@ jb.program.getMoveDirection = function() {
         keyVal = "right";
         numKeysDown += 1;
       }
+
+      // Reset taps.
+      jb.listenForTap();
     }
   }
 
