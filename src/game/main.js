@@ -157,7 +157,6 @@ jb.program = {
       var selection = (jb.tap.y - y0) / spacer;
       selection = Math.floor(Math.max(0, Math.min(selection, jb.k.levelSelectInfo.length - 2)));
       this.currentMap = selection;
-      console.log("Selected " + this.currentMap);
     }
 
     jb.while(!jb.isTapped());
@@ -283,9 +282,7 @@ jb.program = {
     var param = Math.floor(jb.timer("uiClock") / jb.k.LEVEL_START_DELAY * jb.k.LEVEL_START_PLAYER_FLASHES);
 
     jb.clear();
-    console.log("MMDEBUG <1>");
     jb.mapTest.draw(jb.ctxt, this.origin);
-    console.log("MMDEBUG <2>");
     jb.bank.draw(jb.ctxt, jb.mapTest);
     jb.powerups.draw(jb.ctxt, jb.mapTest);
     jb.treasures.draw(jb.ctxt);
@@ -308,8 +305,6 @@ jb.program = {
     var dtMS = jb.time.deltaTimeMS;
     var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed * (1 - (this.level - 1) / 10));
     var moveDir = this.getMoveDirection();
-
-    console.log("MMDEBUG <MAIN_LOOP>");
 
     // Update sound volumes outside the physics loop.
     // this.updateStepSounds(this.player.isCollecting(), dtMS);
