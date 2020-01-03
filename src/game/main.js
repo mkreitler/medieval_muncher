@@ -121,7 +121,7 @@ jb.program = {
     jb.sound.setGroup(this.sounds["spawn_treasure"], "themes");
     jb.sound.setGroup(this.sounds["collect_treasure"], "themes");
 
-    resources.loadWebFonts(["VT323"]);
+    // resources.loadWebFonts(["VT323"]);
   },
 
   do_waitForResourceLoad: function() {
