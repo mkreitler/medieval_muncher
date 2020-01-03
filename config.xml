@@ -18,7 +18,8 @@
   <!-- all platforms -->
   <preference name="orientation" value="landscape" />
   <preference name="fullscreen" value="true" />
-
+  <preference name="DisallowOverscroll" value="true" />
+  
   <!-- iOS only -->
   <preference name="target-device" value="tablet" />
   <preference name="prerendered-icon" value="true" />
