@@ -5,8 +5,8 @@ jb.k = {
     FUDGE_REDUCTION: 0.0, // was 0.1
     MIN_FUDGE_FACTOR: 0.5,
     EPSILON: 0.001,
-    COLUMNS_LARGE: 40,
-    COLUMNS_SMALL: 80,
+    COLUMNS_LARGE: 20,
+    COLUMNS_SMALL: 30,
     NUM_MONSTERS: 0, // 4,
     IDLE_DT: 1000,
     ANIM_DT: 250,

@@ -157,6 +157,7 @@ jb.program = {
       var selection = (jb.tap.y - y0) / spacer;
       selection = Math.floor(Math.max(0, Math.min(selection, jb.k.levelSelectInfo.length - 2)));
       this.currentMap = selection;
+      console.log("Selected " + this.currentMap);
     }
 
     jb.while(!jb.isTapped());
@@ -198,6 +199,10 @@ jb.program = {
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
     this.origin.y = Math.floor((jb.program.ROWS - jb.mapTest.map.length) / 2) * jb.program.SIZE * jb.program.SCALE;
 
+    jb.listenForTap();
+
+    // Force an update before we build the level so the messaging system
+    // can register all the listeners created during initialization.
     jb.break();
   },
   
@@ -222,7 +227,7 @@ jb.program = {
     var iMessage = 0;
     var frame = time % 2;
     var iRow = 0;
-    var x0 = this.SCREEN_WIDTH / 4;
+    var x0 = this.SCREEN_WIDTH / 5;
     var y0 = this.SCREEN_HEIGHT / 1.9;
     var spacer = this.SCREEN_WIDTH / 20;
 
@@ -239,7 +244,7 @@ jb.program = {
       var y = y0 + iRow * spacer;
       var animInfo = jb.k.playerTypes[key].frames.walk[frame];
       this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, x0, y, 0.5, 0.5);
-      jb.printAtXY(jb.k.instructions[iMessage++], x0 + spacer, y, 0, 0.5);
+      jb.printAtXY(jb.k.instructions[iMessage++], this.SCREEN_WIDTH / 2, y, 0.5, 0.5);
       ++iRow;
     }
 
