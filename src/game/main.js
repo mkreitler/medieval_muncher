@@ -260,11 +260,17 @@ jb.program = {
       jb.sound.init();
     }
 
+    console.log("MMDEBUG <1>");
+
     this.gameState = this.GAME_STATE.PLAYING;
+
+    console.log("MMDEBUG <2>");
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].start(jb.mapTest, this.level);
     }
+
+    console.log("MMDEBUG <3>");
 
     this.loopSound("steps_2");
     if (this.useStepSounds) {
@@ -274,6 +280,8 @@ jb.program = {
     this.currentStepVolume = 0;
     this.targetStepVolume = 0;
 
+    console.log("MMDEBUG <4>");
+    
     this.playSound("level_start");
     jb.startTimer("uiClock")
   },
