@@ -679,10 +679,15 @@ jb.mapTest = {
     },
 
     draw: function(ctxt) {
+        console.log("MMDEBUG <A>");
         ctxt.save();
+        console.log("MMDEBUG <B>");
         ctxt.translate(this.origin.x, this.origin.y);
+        console.log("MMDEBUG <C>");
         ctxt.drawImage(this.canvas, 0, 0);
+        console.log("MMDEBUG <D>");
         ctxt.restore();
+        console.log("MMDEBUG <E>");
     },
 
     debugPoint: function(x, y, color) {

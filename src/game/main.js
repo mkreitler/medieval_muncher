@@ -160,6 +160,8 @@ jb.program = {
       console.log("Selected " + this.currentMap);
     }
 
+    jb.ctxt.drawImage(this.IMAGES.creatures, 0, 0);
+
     jb.while(!jb.isTapped());
   },
 
@@ -286,12 +288,8 @@ jb.program = {
     jb.mapTest.draw(jb.ctxt, this.origin);
     console.log("MMDEBUG <2>");
     jb.bank.draw(jb.ctxt, jb.mapTest);
-    console.log("MMDEBUG <3>");
     jb.powerups.draw(jb.ctxt, jb.mapTest);
-    console.log("MMDEBUG <4>");
     jb.treasures.draw(jb.ctxt);
-
-    console.log("MMDEBUG <5>");
 
     if (param % 2 === 0) {
       this.player.draw(jb.ctxt);
