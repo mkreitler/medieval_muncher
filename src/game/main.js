@@ -260,17 +260,11 @@ jb.program = {
       jb.sound.init();
     }
 
-    console.log("MMDEBUG <1>");
-
     this.gameState = this.GAME_STATE.PLAYING;
-
-    console.log("MMDEBUG <2>");
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].start(jb.mapTest, this.level);
     }
-
-    console.log("MMDEBUG <3>");
 
     this.loopSound("steps_2");
     if (this.useStepSounds) {
@@ -280,14 +274,14 @@ jb.program = {
     this.currentStepVolume = 0;
     this.targetStepVolume = 0;
 
-    console.log("MMDEBUG <4>");
-    
     this.playSound("level_start");
     jb.startTimer("uiClock")
   },
 
   do_flashPlayer: function() {
     var param = Math.floor(jb.timer("uiClock") / jb.k.LEVEL_START_DELAY * jb.k.LEVEL_START_PLAYER_FLASHES);
+
+    console.log("MMDEBUG <FLASH>");
 
     jb.clear();
     jb.mapTest.draw(jb.ctxt, this.origin);
@@ -313,6 +307,8 @@ jb.program = {
     var dtMS = jb.time.deltaTimeMS;
     var maxDt = Math.floor(jb.k.DEATH_FUDGE * jb.k.COLLISION_FUDGE * 1000 * this.minSize / this.maxSpeed * (1 - (this.level - 1) / 10));
     var moveDir = this.getMoveDirection();
+
+    console.log("MMDEBUG <MAIN_LOOP>");
 
     // Update sound volumes outside the physics loop.
     // this.updateStepSounds(this.player.isCollecting(), dtMS);
