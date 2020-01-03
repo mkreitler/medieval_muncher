@@ -281,7 +281,7 @@ jb.program = {
   do_flashPlayer: function() {
     var param = Math.floor(jb.timer("uiClock") / jb.k.LEVEL_START_DELAY * jb.k.LEVEL_START_PLAYER_FLASHES);
 
-    console.log("MMDEBUG <FLASH>");
+    console.log("MMDEBUG <1>");
 
     jb.clear();
     jb.mapTest.draw(jb.ctxt, this.origin);
@@ -289,16 +289,24 @@ jb.program = {
     jb.powerups.draw(jb.ctxt, jb.mapTest);
     jb.treasures.draw(jb.ctxt);
 
+    console.log("MMDEBUG <2>");
+
     if (param % 2 === 0) {
       this.player.draw(jb.ctxt);
     }
+
+    console.log("MMDEBUG <3>");
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].draw(jb.ctxt);
     }
     jb.particles.draw(jb.ctxt);
 
+    console.log("MMDEBUG <4>");
+
     jb.listenForTap();
+
+    console.log("MMDEBUG <5>");
     
     jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
   },
