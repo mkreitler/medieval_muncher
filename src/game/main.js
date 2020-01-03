@@ -243,7 +243,7 @@ jb.program = {
     for (var key in jb.k.playerTypes) {
       var y = y0 + iRow * spacer;
       var animInfo = jb.k.playerTypes[key].frames.walk[frame];
-      console.log("MMDEBUG: frames for " + key + " are " + jb.k.playerTypes[key].frames.walk[frame]);
+      this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, 50, 50, 0.5, 0.5);
       this.sheets.creatureTiles.draw(jb.ctxt, animInfo.row, animInfo.col, x0, y, 0.5, 0.5);
       jb.printAtXY(jb.k.instructions[iMessage++], this.SCREEN_WIDTH / 2, y, 0.5, 0.5);
       ++iRow;
