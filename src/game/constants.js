@@ -43,6 +43,7 @@ jb.k = {
     Y_TOUCH_MARGIN_TOP: 2/5,
     Y_TOUCH_MARGIN_BOTTOM: 3/4,
     X_TOUCH_MARGIN: 2,
+    MIN_SWIPE_DIST_SQ: 96 * 0.5 * window.devicePixelRatio * 96 * 0.5 * window.devicePixelRatio,
     levelSelectInfo: [
       "Please choose a level:",
       "Dungeon",

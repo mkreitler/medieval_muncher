@@ -295,7 +295,7 @@ jb.program = {
     }
     jb.particles.draw(jb.ctxt);
 
-    jb.listenForTap();
+    jb.listenForSwipe();
 
     jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
   },
@@ -551,26 +551,35 @@ jb.program.getMoveDirection = function() {
 
   if (keyVal === null) {
     // Alternate movement.
-    if (jb.tap.done) {
-      if (jb.tap.y < jb.canvas.height * jb.k.Y_TOUCH_MARGIN_TOP) {
-        keyVal = "up";
-        numKeysDown += 1;
-      }
-      else if (jb.tap.y > jb.canvas.height * jb.k.Y_TOUCH_MARGIN_BOTTOM) {
-        keyVal = "down";
-        numKeysDown += 1;
-      }
-      else if (jb.tap.x < jb.canvas.width / jb.k.X_TOUCH_MARGIN) {
-        keyVal = "left";
-        numKeysDown += 1;
-      }
-      else if (jb.tap.x > jb.canvas.width / jb.k.X_TOUCH_MARGIN) {
-        keyVal = "right";
-        numKeysDown += 1;
+    if (jb.swipe.done) {
+      var dx = jb.swipe.endX - jb.swipe.startX;
+      var dy = jb.swipe.endY - jb.swipe.startY;
+
+      if (dx * dx + dy * dy > jb.k.MIN_SWIPE_DIST_SQ) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) {
+            keyVal = "left";
+            numKeysDown += 1;
+          }
+          else {
+            keyVal = "right";
+            numKeysDown += 1;
+          }
+        }
+        else {
+          if (dy < 0) {
+            keyVal = "up";
+            numKeysDown += 1;
+          }
+          else {
+            keyVal = "down";
+            numKeysDown += 1;
+          }
+        }
       }
 
-      // Reset taps.
-      jb.listenForTap();
+      // Reset swipe.
+      jb.listenForSwipe();
     }
   }
 
