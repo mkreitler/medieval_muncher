@@ -6,9 +6,12 @@ blueprints.draft(
         speed: 0,
         moveDir: null,
         wantDir: null,
+        altWantDir: null,
         scale: 1,
         powerup: null,
         map: null,
+        isAltMoveLeftDown: false,
+        isAltMoveRightDown: false,
         wantsInvisibility: false,
         goal: {x: -1, y: -1, newHeading: null, teleportTo: null},
                 testDirs: {
@@ -50,6 +53,7 @@ blueprints.draft(
             this.spriteSetAlpha(1.0);
             this.wantsInvisibility = false;
             this.coinCollectTimer = 0;
+            this.altWantDir = null;
         },
 
         collectPowerup: function(powerup) {
@@ -103,7 +107,28 @@ blueprints.draft(
         },
 
         update: function(dir, dtMS, map) {
-            this.move(dir, dtMS, map);
+            if (dir === "A") {
+                this.altLeftDown(true);
+                this.altRightDown(false);
+            }
+            else {
+                this.altLeftDown(false);
+            }
+            if (dir === "B") {
+                this.altRightDown(true);
+                this.altLeftDown(false);
+            }
+            else {
+                this.altRightDown(false);
+            }
+
+            if (this.isAltMoveLeftDown || this.isAltMoveRightDown) {
+                this.altMove(dtMS, map);
+            }
+            else {
+                this.move(dir, dtMS, map);
+            }
+
             this.body2dUpdate(dtMS);
             this.spriteUpdate(dtMS);
 
@@ -157,6 +182,203 @@ blueprints.draft(
             this.spriteSetState("idle");
         },
 
+        altLeftDown: function(isKeyDown) {
+            if (isKeyDown && !this.isAltMoveLeftDown) {
+                // Key down
+                switch (this.altWantDir) {
+                    // case "up": {
+                    //     this.altWantDir = "left";
+                    // }
+                    // break;
+
+                    // case "right": {
+                    //     this.altWantDir = "up";
+                    // }
+                    // break;
+
+                    // case "down": {
+                    //     this.altWantDir = "left";
+                    // }
+                    // break;
+
+                    // case "left": {
+                    //     this.altWantDir = "down";
+                    // }
+                    // break;
+
+                    // case null: {
+                    //     this.altWantDir = "left";
+                    // }
+                    // break;
+
+                    case "up": {
+                        this.altWantDir = "left";
+                    }
+                    break;
+
+                    case "right": {
+                        this.altWantDir = "up";
+                    }
+                    break;
+
+                    case "down": {
+                        this.altWantDir = "right";
+                    }
+                    break;
+
+                    case "left": {
+                        this.altWantDir = "down";
+                    }
+                    break;
+
+                    case null: {
+                        this.altWantDir = "left";
+                    }
+                    break;
+                }
+            }
+            else if (!isKeyDown && this.isAltMoveLeftDown) {
+                // Key up
+            }
+
+            this.isAltMoveLeftDown = isKeyDown;
+        },
+
+        altRightDown: function(isKeyDown) {
+            if (isKeyDown && !this.isAltMoveRightDown) {
+                // Key down
+                switch (this.altWantDir) {
+                    // case "up": {
+                    //     this.altWantDir = "right";
+                    // }
+                    // break;
+
+                    // case "right": {
+                    //     this.altWantDir = "down";
+                    // }
+                    // break;
+
+                    // case "down": {
+                    //     this.altWantDir = "right";
+                    // }
+                    // break;
+
+                    // case "left": {
+                    //     this.altWantDir = "up";
+                    // }
+                    // break;
+
+                    // case null: {
+                    //     this.altWantDir = "right";
+                    // }
+                    // break;
+                    case "up": {
+                        this.altWantDir = "right";
+                    }
+                    break;
+
+                    case "right": {
+                        this.altWantDir = "down";
+                    }
+                    break;
+
+                    case "down": {
+                        this.altWantDir = "left";
+                    }
+                    break;
+
+                    case "left": {
+                        this.altWantDir = "up";
+                    }
+                    break;
+
+                    case null: {
+                        this.altWantDir = "right";
+                    }
+                    break;
+                }
+            }
+            else if (!isKeyDown && this.isAltMoveRightDown) {
+                // Key up.
+            }
+
+            this.isAltMoveRightDown = isKeyDown;
+        },
+
+        updateMove: function(oldDir, dtMS, map) {
+            this.walk();
+            this.spriteSetDebugColor("yellow");
+
+            switch (this.moveDir) {
+                case "up": case "down": {
+                    this.moveDir = this.goal.y - this.bounds.t < 0 ? "up" : "down";
+                    timePastGoal = this.moveVertically(dtMS, map);
+
+                    if (timePastGoal >= 0) {
+                        this.spriteSetDebugColor("red");
+
+                        var teleporter = map.getTeleporterAt(this.bounds.l, this.bounds.t);
+                        if (teleporter) {
+                            this.teleportTo(teleporter);
+                            if (map.getPlayerGoal(this.bounds, oldDir, this.goal)) {
+                                this.moveDir = oldDir;
+                            }
+                        }
+                        else {
+                            this.moveDir = null;
+                        }
+                    }
+                }
+                break;
+
+                case "left": case "right": {
+                    this.moveDir = this.goal.x - this.bounds.l < 0 ? "left" : "right";
+                    timePastGoal = this.moveLaterally(dtMS, map);
+
+                    if (timePastGoal >= 0) {
+                        this.spriteSetDebugColor("red");
+
+                        var teleporter = map.getTeleporterAt(this.bounds.l, this.bounds.t);
+                        if (teleporter) {
+                            this.teleportTo(teleporter);
+                            if (map.getPlayerGoal(this.bounds, oldDir, this.goal)) {
+                                this.moveDir = oldDir;
+                            }
+                        }
+                        else {
+                            this.moveDir = null;
+                        }
+                    }
+                }
+                break;
+
+                default: {
+                    // Should never get here...
+                    jb.assert(false, "Invalid player move direction!");
+                }
+            }
+        },
+
+        altMove: function(dtMS, map) {
+            var oldDir = this.moveDir;
+            
+            if (map.getPlayerGoal(this.bounds, this.altWantDir, this.goal)) {
+                this.moveDir = this.altWantDir;
+            }
+            
+            if (this.moveDir) {
+                this.updateMove(oldDir, dtMS, map);
+            }
+            else {
+                this.idle();
+            }
+
+            if (!this.wantsInvisibility) {
+                map.fadeSprite(this);
+            }
+        },
+
+
         move: function(dir, dtMS, map) {
             var oldDir = this.moveDir;
             this.wantDir = dir;
@@ -166,57 +388,7 @@ blueprints.draft(
             }
             
             if (this.moveDir) {
-                this.walk();
-                this.spriteSetDebugColor("yellow");
-
-                switch (this.moveDir) {
-                    case "up": case "down": {
-                        this.moveDir = this.goal.y - this.bounds.t < 0 ? "up" : "down";
-                        timePastGoal = this.moveVertically(dtMS, map);
-    
-                        if (timePastGoal >= 0) {
-                            this.spriteSetDebugColor("red");
-
-                            var teleporter = map.getTeleporterAt(this.bounds.l, this.bounds.t);
-                            if (teleporter) {
-                                this.teleportTo(teleporter);
-                                if (map.getPlayerGoal(this.bounds, oldDir, this.goal)) {
-                                    this.moveDir = oldDir;
-                                }
-                            }
-                            else {
-                                this.moveDir = null;
-                            }
-                        }
-                    }
-                    break;
-    
-                    case "left": case "right": {
-                        this.moveDir = this.goal.x - this.bounds.l < 0 ? "left" : "right";
-                        timePastGoal = this.moveLaterally(dtMS, map);
-    
-                        if (timePastGoal >= 0) {
-                            this.spriteSetDebugColor("red");
-
-                            var teleporter = map.getTeleporterAt(this.bounds.l, this.bounds.t);
-                            if (teleporter) {
-                                this.teleportTo(teleporter);
-                                if (map.getPlayerGoal(this.bounds, oldDir, this.goal)) {
-                                    this.moveDir = oldDir;
-                                }
-                            }
-                            else {
-                                this.moveDir = null;
-                            }
-                        }
-                    }
-                    break;
-
-                    default: {
-                        // Should never get here...
-                        jb.assert(false, "Invalid player move direction!");
-                    }
-                }
+                this.updateMove(oldDir, dtMS, map);
             }
             else {
                 this.idle();

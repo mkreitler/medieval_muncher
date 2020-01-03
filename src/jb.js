@@ -2646,10 +2646,12 @@ jb.resize = function(width, height) {
   jb.screenBuffer.height = jb.canvas.height;
   jb.resizeFont();
 };
-jb.resizeToWindow = function(aspectWidth, aspectHeight) {
+jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect) {
+  pixelPerfect = pixelPerfect === undefined ? true : pixelPerfect;
+
   var windowSize = this.getWindowSize();
-  var widthScale = Math.floor(windowSize.width / aspectWidth);
-  var heightScale = Math.floor(windowSize.height / aspectHeight);
+  var widthScale = pixelPerfect ? Math.floor(windowSize.width / aspectWidth) : windowSize.width / aspectWidth;
+  var heightScale = pixelPerfect ? Math.floor(windowSize.height / aspectHeight) : windowSize.height / aspectHeight;
   var scale = Math.min(widthScale, heightScale);
   this.resize(aspectWidth * scale, aspectHeight * scale);
   jb.setViewScale(scale);
@@ -3361,6 +3363,13 @@ jb.listenForTap = function() {
   jb.tap.bListening = true;
   jb.tap.touched = false;
 };
+jb.isTapped = function() {
+  if (!jb.tap.bListening) {
+    jb.listenForTap();
+  }
+
+  return jb.tap.done;
+};
 
 jb.resetTap = function() {
   jb.tap.x = -1;
@@ -3419,7 +3428,7 @@ jb.mouseUp = function(e) {
 jb.gestureStart = function() {
   var newNow = Date.now(),
       x = jb.pointInfo.x
-  y = jb.pointInfo.y;
+      y = jb.pointInfo.y;
 
 
   if (jb.tap.bListening) {
@@ -8841,6 +8850,25 @@ jb.EZglyphs = {
 // oo     .d8P `88b    d88'  `88.    .8'   8       `888   888     d88' 
 // 8""88888P'   `Y8bood8P'     `YbodP'    o8o        `8  o888bood8P'   
 // SOUND //////////////////////////////////////////////////////////////////////
+/**
+ * Advanced usage:
+ * Create sound groups and add sounds to them.
+ * When a new sound belonging to a sound group starts playing,
+ * it will stop all other sounds in the group.
+ * Also, sound groups are given a priority. When a new sound
+ * plays, it will force all sounds in lower-priorty groups to
+ * duck.
+ * 
+ * Usage:
+ *  jb.sound.createGroup("themes", 10);
+ *  jb.sound.setGroup(this.sounds["level_start"], "themes");
+ *  jb.sound.setGroup(this.sounds["victory"], "themes");
+ *  jb.sound.play(this.sounds["victory"]);
+ *  jb.sound.play(this.sounds["level_start"]);
+ * 
+ * The 'victory' sound will stop playing immediately, allowing "level_start"
+ * to play without sounding jumbled.
+ */
 jb.sound = {
   DEFAULT_FREQ: 440, // Hz
   DEFAULT_VOL: 1.0,

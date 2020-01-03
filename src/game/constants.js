@@ -7,7 +7,7 @@ jb.k = {
     EPSILON: 0.001,
     COLUMNS_LARGE: 40,
     COLUMNS_SMALL: 80,
-    NUM_MONSTERS: 4,
+    NUM_MONSTERS: 0, // 4,
     IDLE_DT: 1000,
     ANIM_DT: 250,
     STEP_FADE_TIME: 250,
@@ -40,6 +40,12 @@ jb.k = {
     DEATH_SPIN_DURATION: 2,
     WIN_FLASHES: 4,
     CELEBRATION_DURATION: 2,
+    levelSelectInfo: [
+      "Please choose a level:",
+      "Dungeon",
+      "Crypt",
+      "Labyrinth",
+    ],
     instructions: [
       "Use arrow keys to collect gold and treasure",
       "Uses swords to defeat nearby enemies",

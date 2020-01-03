@@ -27,6 +27,12 @@ jb.program = {
   minSize: Number.MAX_VALUE,
   sheets: {},
   clue: null,
+  progression: [
+    {character: "knight", tileSet: "dungeon", monster: "cubes", powerup: "sword", level: 1, clue: "Cellar imp's favorite sport?"},
+    {character: "thief", tileSet: "crypt", monster: "skeletons", powerup: "cloak", level: 2, clue: "Mr. McSmibble's perch."},
+    {character: "wizard", tileSet: "labyrinth", monster: "demons", powerup: "scroll", level: 3, clue: "Take your scores to Mom and Dad"},
+  ],
+  currentMap: 0,
   mapType: null,
   scoreMultiple: 1,
   targetStepVolume: 0,
@@ -74,7 +80,7 @@ jb.program = {
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
-    this.SCALE = jb.resizeToWindow(this.COLS * this.SIZE, this.ROWS * this.SIZE);
+    this.SCALE = jb.resizeToWindow(this.COLS * this.SIZE, this.ROWS * this.SIZE, true);
 
     for (var i=0; i<jb.k.NUM_MONSTERS; ++i) {
       this.monsters.push(null);
@@ -122,53 +128,38 @@ jb.program = {
     jb.until(resources.loadComplete());
   },
 
-  setup_passwordInput: function() {
-    jb.listenForTap();
-  },
+  do_showLevelSelect: function() {
+    var iMessage = 0;
+    var iRow = 0;
+    var y0 = this.SCREEN_HEIGHT / 1.9;
+    var spacer = this.SCREEN_WIDTH / 15;
 
-  do_checkPassword: function() {
     jb.clear();
 
-    if (!this.passwordEntered) {
-      jb.setForeColor("white");
-      jb.setColumns(jb.k.COLUMNS_LARGE);
-      jb.printAtXY("Enter Password", jb.canvas.width / 2, jb.canvas.height / 3, 0.5, 0.5);
+    jb.setWebFont("VT323");
+    jb.setColumns(jb.k.COLUMNS_LARGE);
+    jb.printAtXY("Medieval Muncher", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 5, 0.5, 0.5);
 
-      jb.setColumns(jb.k.COLUMNS_SMALL);
-      jb.printAtXY("then click to play", jb.canvas.width / 2, jb.canvas.height / 3 + this.SCREEN_HEIGHT / 10, 0.5, 0.5);
+    jb.setColumns(jb.k.COLUMNS_SMALL);
+    jb.printAtXY(jb.k.levelSelectInfo[iMessage++], this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2.6, 0.5, 0.5);
 
-      jb.setForeColor("yellow");
-      this.input = jb.input;
-      if (this.input && this.input.length > 0) {
-        jb.printAtXY(this.input, jb.canvas.width / 2, jb.canvas.height * 2 / 3, 0.5, 0.5);
-      }
+    jb.setColumns(jb.k.COLUMNS_LARGE);
+    jb.setForeColor("gray");
+    for (var key in jb.k.playerTypes) {
+      var y = y0 + iRow * spacer;
+      jb.printAtXY(jb.k.levelSelectInfo[iMessage++], this.SCREEN_WIDTH / 2, y, 0.5, 0.5);
+      ++iRow;
     }
 
-    jb.while(!jb.tap.done);
-  },
+    jb.setForeColor("white");
 
-  verifyPassword: function() {
-    var passwordAccepted = false;
-
-    // Try to init sound (after user click) so we can play the 'fail' clip, if necessary.
-    if (!jb.sound.isEnabled) {
-      jb.sound.init();
+    if (jb.isTapped()) {
+      var selection = (jb.tap.y - y0) / spacer;
+      selection = Math.floor(Math.max(0, Math.min(selection, jb.k.levelSelectInfo.length - 2)));
+      this.currentMap = selection;
     }
 
-    for (var key in jb.customization) {
-      if (this.input && key.toLowerCase() === this.input.toLowerCase()) {
-        passwordAccepted = true;
-      }
-    }
-
-    if (!passwordAccepted) {
-      jb.clearInput();
-      jb.listenForTap();
-      jb.goto("do_checkPassword");
-    }
-    else {
-      jb.assert(this.customizeForPassword(jb.input.toLowerCase()), "Customization failed!");
-    }
+    jb.while(!jb.isTapped());
   },
 
   initialize: function() {
@@ -184,7 +175,8 @@ jb.program = {
       this.minSize = Math.min(this.minSize, this.sheets[key].cellDy * this.SCALE);
     }
 
-    jb.setWebFont("VT323");
+    this.customizeForProgression();
+
     jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.bank.init(this.sheets.itemTiles, this.SCALE);
@@ -254,10 +246,15 @@ jb.program = {
     jb.setForeColor("white");
     jb.printAtXY("Press 'enter' to play", this.SCREEN_WIDTH / 2, 5 * this.SCREEN_HEIGHT / 6, 0.5, 0.5);
 
-    jb.while(!jb.wasKeyPressed("return"));
+    jb.while(!jb.wasKeyPressed("return") && !jb.isTapped());
   },
 
   startGame: function() {
+    // Try to init sound (after user click) so we can play the 'fail' clip, if necessary.
+    if (!jb.sound.isEnabled) {
+      jb.sound.init();
+    }
+
     this.gameState = this.GAME_STATE.PLAYING;
 
     for (var i=0; i<this.monsters.length; ++i) {
@@ -293,8 +290,10 @@ jb.program = {
       this.monsters[i].draw(jb.ctxt);
     }
     jb.particles.draw(jb.ctxt);
+
+    jb.listenForTap();
     
-  jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
+    jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
   },
 
   do_main_game_loop: function() {
@@ -406,7 +405,7 @@ jb.program = {
     jb.printAtXY("Press 'enter' to try again", this.SCREEN_WIDTH / 2, 2 * this.SCREEN_HEIGHT / 3, 0.5, 0.5, jb.k.FONT_SIZE_SMALL);
     jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.printAtXY("Game Over", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
-    jb.until(jb.isKeyDown("return"));
+    jb.until(jb.isKeyDown("return") || jb.isTapped());
   },
 
   playAgainOne: function() {
@@ -416,6 +415,10 @@ jb.program = {
   playerWon: function() {
     this.playSound("victory");
     jb.startTimer("uiClock");
+
+    // this.currentMap += 1;
+    // this.currentMap %= this.progression.length;
+
     jb.k.fudgeFactor = 1.0;
   },
 
@@ -445,7 +448,7 @@ jb.program = {
     jb.setForeColor("white");
     jb.setColumns(jb.k.COLUMNS_LARGE);
     jb.printAtXY("You Won!", this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 3, 0.5, 0.5);
-    jb.until(jb.isKeyDown("return"));
+    jb.until(jb.isKeyDown("return") || jb.isTapped());
   },
 
   playAgainTwo: function() {
@@ -536,6 +539,32 @@ jb.program.getMoveDirection = function() {
     }
   }
 
+  if (keyVal === null) {
+    // Alternate movement.
+    if (jb.tap.done) {
+      if (jb.tap.x < jb.canvas.width / 2) {
+        keyVal = "A";
+        numKeysDown += 1;
+      }
+      else {
+        keyVal = "B";
+        numKeysDown += 1;
+      }
+
+      jb.listenForTap();
+    }
+    else {
+      if (jb.isKeyDown("A")) {
+        keyVal = "A";
+        numKeysDown += 1;
+      }
+      if (jb.isKeyDown("D")) {
+        keyVal = "B";
+        numKeysDown += 1;
+      }
+    }
+  }
+
   if (numKeysDown !== 1) {
     keyVal = null;
   }
@@ -543,11 +572,10 @@ jb.program.getMoveDirection = function() {
   return keyVal;
 };
 
-jb.program.customizeForPassword = function(password) {
+jb.program.customizeForProgression = function() {
   var succeeded = false;
 
-  password = password.toLowerCase();
-  var options = jb.customization[password];
+  var options = this.progression[this.currentMap];
 
   if (options) {
     succeeded = true;
@@ -582,6 +610,7 @@ jb.program.reset = function() {
   jb.powerups.reset();
   jb.treasures.reset();
   jb.monster.reset();
+  jb.particles.reset();
   this.player.reset(jb.mapTest, this.SIZE);
 };
 
