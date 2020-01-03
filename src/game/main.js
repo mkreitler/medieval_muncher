@@ -199,6 +199,8 @@ jb.program = {
     this.origin.x = Math.floor((jb.program.COLS - jb.mapTest.map[0].length / 2) / 2) * jb.program.SIZE * jb.program.SCALE;
     this.origin.y = Math.floor((jb.program.ROWS - jb.mapTest.map.length) / 2) * jb.program.SIZE * jb.program.SCALE;
 
+    jb.assert(false, "Testing Assertion!");
+
     jb.listenForTap();
 
     // Force an update before we build the level so the messaging system

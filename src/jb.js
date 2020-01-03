@@ -6,7 +6,16 @@ jb = {
   assert: function(test, msg) {
       if (!test) {
           console.log(msg);
+
+          jb.setForeColor("red");
+          jb.setBackColor("black");
+          jb.setColumns(Math.round(msg.length * 1.25));
+          jb.clear();
+          jb.printAtXY(msg, jb.canvas.width / 2, jb.canvas.height / 2, 0.5, 0.5);
+
           debugger;
+
+          jb.end();
       }
   },
 };
