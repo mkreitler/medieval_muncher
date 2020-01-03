@@ -40,7 +40,7 @@ jb.k = {
     DEATH_SPIN_DURATION: 2,
     WIN_FLASHES: 4,
     CELEBRATION_DURATION: 2,
-    Y_TOUCH_MARGIN_TOP: 1/2,
+    Y_TOUCH_MARGIN_TOP: 2/5,
     Y_TOUCH_MARGIN_BOTTOM: 3/4,
     X_TOUCH_MARGIN: 2,
     levelSelectInfo: [
