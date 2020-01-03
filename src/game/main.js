@@ -399,6 +399,9 @@ jb.program = {
     this.player.spriteSetRotation(angle);
     this.player.spriteDraw(jb.ctxt);
 
+    // Clear out pending taps.
+    jb.listenForTap();
+
     jb.while(jb.timer("uiClock") < jb.k.DEATH_SPIN_DURATION);
   },
 
@@ -437,6 +440,9 @@ jb.program = {
     if (phase % 2 === 1) {
       jb.mapTest.draw(jb.ctxt, this.origin);
     }
+
+    // Clear out pending taps.
+    jb.listenForTap();
 
     jb.until(time > jb.k.CELEBRATION_DURATION);
   },
