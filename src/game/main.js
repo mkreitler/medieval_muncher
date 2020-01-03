@@ -546,11 +546,11 @@ jb.program.getMoveDirection = function() {
   if (keyVal === null) {
     // Alternate movement.
     if (jb.tap.done) {
-      if (jb.tap.y < jb.canvas.height / jb.k.Y_TOUCH_MARGIN) {
+      if (jb.tap.y < jb.canvas.height * jb.k.Y_TOUCH_MARGIN_TOP) {
         keyVal = "up";
         numKeysDown += 1;
       }
-      else if (jb.tap.y > 2 * jb.canvas.height / jb.k.Y_TOUCH_MARGIN) {
+      else if (jb.tap.y > jb.canvas.height * jb.k.Y_TOUCH_MARGIN_BOTTOM) {
         keyVal = "down";
         numKeysDown += 1;
       }
