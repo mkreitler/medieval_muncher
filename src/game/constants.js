@@ -40,6 +40,8 @@ jb.k = {
     DEATH_SPIN_DURATION: 2,
     WIN_FLASHES: 4,
     CELEBRATION_DURATION: 2,
+    Y_TOUCH_MARGIN: 4,
+    X_TOUCH_MARGIN: 2,
     levelSelectInfo: [
       "Please choose a level:",
       "Dungeon",
