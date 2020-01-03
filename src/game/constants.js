@@ -7,7 +7,7 @@ jb.k = {
     EPSILON: 0.001,
     COLUMNS_LARGE: 20,
     COLUMNS_SMALL: 30,
-    NUM_MONSTERS: 0, // 4,
+    NUM_MONSTERS: 4,
     IDLE_DT: 1000,
     ANIM_DT: 250,
     STEP_FADE_TIME: 250,

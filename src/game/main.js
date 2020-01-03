@@ -80,7 +80,7 @@ jb.program = {
   
   // GAME START //////////////////////////////////////////////////////////////////
   setup: function() {
-    this.SCALE = jb.resizeToWindow(this.COLS * this.SIZE, this.ROWS * this.SIZE, true);
+    this.SCALE = jb.resizeToWindow(this.COLS * this.SIZE, this.ROWS * this.SIZE, false);
 
     for (var i=0; i<jb.k.NUM_MONSTERS; ++i) {
       this.monsters.push(null);
