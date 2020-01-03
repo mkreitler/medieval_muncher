@@ -281,33 +281,29 @@ jb.program = {
   do_flashPlayer: function() {
     var param = Math.floor(jb.timer("uiClock") / jb.k.LEVEL_START_DELAY * jb.k.LEVEL_START_PLAYER_FLASHES);
 
-    console.log("MMDEBUG <1>");
-
     jb.clear();
+    console.log("MMDEBUG <1>");
     jb.mapTest.draw(jb.ctxt, this.origin);
+    console.log("MMDEBUG <2>");
     jb.bank.draw(jb.ctxt, jb.mapTest);
+    console.log("MMDEBUG <3>");
     jb.powerups.draw(jb.ctxt, jb.mapTest);
+    console.log("MMDEBUG <4>");
     jb.treasures.draw(jb.ctxt);
 
-    console.log("MMDEBUG <2>");
+    console.log("MMDEBUG <5>");
 
     if (param % 2 === 0) {
       this.player.draw(jb.ctxt);
     }
-
-    console.log("MMDEBUG <3>");
 
     for (var i=0; i<this.monsters.length; ++i) {
       this.monsters[i].draw(jb.ctxt);
     }
     jb.particles.draw(jb.ctxt);
 
-    console.log("MMDEBUG <4>");
-
     jb.listenForTap();
 
-    console.log("MMDEBUG <5>");
-    
     jb.while(jb.timer("uiClock") < jb.k.LEVEL_START_DELAY);
   },
 
