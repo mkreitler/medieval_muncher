@@ -2216,6 +2216,7 @@ jb.render = function() {
   }
 
   if (jb.canvas && jb.canvas.width > 0 && jb.canvas.height > 0) {
+      var finalScale = Math.min(jb.screenBufferCtxt.canvas.width / jb.canvas.width, jb.screenBufferCtxt.canvas.height / jb.canvas.height);
 
       // Refresh the screen.
       jb.screenBufferCtxt.save();
@@ -2225,6 +2226,7 @@ jb.render = function() {
       jb.screenBufferCtxt.fillRect(0, 0, jb.canvas.width, jb.canvas.height);
 
       jb.screenBufferCtxt.translate(-jb.viewOrigin.x, -jb.viewOrigin.y);
+      jb.screenBufferCtxt.scale(finalScale, finalScale);
       jb.screenBufferCtxt.drawImage(jb.canvas, 0, 0);
       jb.screenBufferCtxt.restore();
 
@@ -2648,11 +2650,29 @@ jb.getWindowSize = function() {
       height: y
   };
 };
-jb.resize = function(width, height) {
-  jb.canvas.width = width || window.innerWidth * 0.95;
-  jb.canvas.height = height || window.innerHeight * 0.95;
-  jb.screenBuffer.width = jb.canvas.width;
-  jb.screenBuffer.height = jb.canvas.height;
+jb.resize = function(width, height, pixelPerfect) {
+  var win = window,
+  doc = document,
+  docElem = doc.documentElement,
+  body = doc.getElementsByTagName('body')[0],
+  dx = win.innerWidth || docElem.clientWidth || body.clientWidth,
+  dy = win.innerHeight|| docElem.clientHeight|| body.clientHeight;
+
+  jb.canvas.width = width || dx * 0.95;
+  jb.canvas.height = height || dy * 0.95;
+
+  if (pixelPerfect) {
+    jb.screenBuffer.width = jb.canvas.width;
+    jb.screenBuffer.height = jb.canvas.height;
+  }
+  else {
+    jb.screenBuffer.width = dx * 0.95;
+    jb.screenBuffer.height = dy * 0.95;
+  }
+
+  this.viewOrigin.x = -Math.round((jb.screenBufferCtxt.canvas.width - jb.canvas.width) * 0.25);
+  this.viewOrigin.y = -Math.round((jb.screenBufferCtxt.canvas.height - jb.canvas.height) * 0.25);
+
   jb.resizeFont();
 };
 jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect) {
