@@ -160,8 +160,6 @@ resources = {
           },
           fontactive: function(familyName, fvd) {
               var hiddenDiv = document.createElement("div");
-              hiddenDiv.style.height = "100%";
-              hiddenDiv.style.overflow = "hidden";
               hiddenDiv.style.fontFamily = familyName;
               hiddenDiv.style.visibility = "hidden";
               hiddenDiv.innerHTML += familyName + " loaded";
@@ -2389,6 +2387,8 @@ jb.create = function() {
   jb.screen.height = (window.innerHeight || document.body.clientHeight);
 
   div.align = "center";
+  div.style.height = "100%";
+  div.style.overflow = "hidden";
 
   jb.canvas = document.createElement('canvas');
 
@@ -3497,32 +3497,34 @@ jb.gestureStart = function() {
       x = jb.pointInfo.x
       y = jb.pointInfo.y;
 
-  if (jb.tap.bListening) {
-      jb.tap.x = x;
-      jb.tap.y = y;
-      jb.tap.count = newNow - jb.tap.lastTapTime >= jb.DOUBLE_TAP_INTERVAL ? 1 : jb.tap.count + 1;
-      jb.tap.isDoubleTap = jb.tap.count > 1 && newNow - jb.tap.lastTapTime < jb.DOUBLE_TAP_INTERVAL;
-      jb.tap.lastTapTime = newNow;
-      jb.tap.touched = jb.touchables.getTouched(x, y);
-      jb.tap.done = true;
+  if (x !== undefined && y !== undefined) {
+    if (jb.tap.bListening) {
+        jb.tap.x = x;
+        jb.tap.y = y;
+        jb.tap.count = newNow - jb.tap.lastTapTime >= jb.DOUBLE_TAP_INTERVAL ? 1 : jb.tap.count + 1;
+        jb.tap.isDoubleTap = jb.tap.count > 1 && newNow - jb.tap.lastTapTime < jb.DOUBLE_TAP_INTERVAL;
+        jb.tap.lastTapTime = newNow;
+        jb.tap.touched = jb.touchables.getTouched(x, y);
+        jb.tap.done = true;
 
-      if (jb.tap.isDoubleTap || jb.tap.count > 1) {
-          jb.tap.count = 0;
-      }
-  }
+        if (jb.tap.isDoubleTap || jb.tap.count > 1) {
+            jb.tap.count = 0;
+        }
+    }
 
-  if (jb.swipe.bListening) {
-      jb.swipe.startX = x;
-      jb.swipe.startY = y;
-      jb.swipe.lastX = x;
-      jb.swipe.lastY = y;
-      jb.swipe.endX = x;
-      jb.swipe.endY = y;
-      jb.swipe.startTime = newNow;
-      jb.swipe.swiped.length = 0;
-      jb.swipe.allSwiped.length = 0;
-      jb.swipe.started = true;
-      jb.swipe.done = false;
+    if (jb.swipe.bListening) {
+        jb.swipe.startX = x;
+        jb.swipe.startY = y;
+        jb.swipe.lastX = x;
+        jb.swipe.lastY = y;
+        jb.swipe.endX = x;
+        jb.swipe.endY = y;
+        jb.swipe.startTime = newNow;
+        jb.swipe.swiped.length = 0;
+        jb.swipe.allSwiped.length = 0;
+        jb.swipe.started = true;
+        jb.swipe.done = false;
+    }
   }
 };
 
