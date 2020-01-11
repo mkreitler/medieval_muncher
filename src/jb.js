@@ -3703,15 +3703,15 @@ jb.addTouchButton = function(id, left, top, width, height) {
       })
   },
 
-  document.addEventListener("keydown", jb.onDown, true);
-document.addEventListener("keyup", jb.onUp, true);
+  document.addEventListener("keydown", jb.onDown, false);
+document.addEventListener("keyup", jb.onUp, false);
 
-window.addEventListener("mousedown", jb.mouseDown, true);
-window.addEventListener("mouseup", jb.mouseUp, true);
+window.addEventListener("mousedown", jb.mouseDown, false);
+window.addEventListener("mouseup", jb.mouseUp, false);
 
-window.addEventListener("touchstart", jb.touchStart, true);
-window.addEventListener("touchmove", jb.touchMove, true);
-window.addEventListener("touchend", jb.touchEnd, true);
+window.addEventListener("touchstart", jb.touchStart, false);
+window.addEventListener("touchmove", jb.touchMove, false);
+window.addEventListener("touchend", jb.touchEnd, false);
 
 ////////////////////////////////////////////////////////////////////////////////
 // oooooooooooo   .oooooo.   ooooo      ooo ooooooooooooo  .oooooo.o 
