@@ -132,7 +132,7 @@ jb.program = {
     var iMessage = 0;
     var iRow = 0;
     var y0 = this.SCREEN_HEIGHT / 1.9;
-    var spacer = this.SCREEN_WIDTH / 15;
+    var spacer = this.SCREEN_HEIGHT / 9;
 
     jb.clear();
 

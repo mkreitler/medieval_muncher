@@ -2351,7 +2351,7 @@ jb.ctxt = null;
 jb.columns = 80;
 jb.viewScale = 1;
 jb.doScale = false;
-jb.webviewMargin = 1.0;
+jb.webviewMargin = 0.02;
 jb.viewOrigin = {
   x: 0,
   y: 0
@@ -2388,9 +2388,6 @@ jb.create = function() {
   jb.screen.height = (window.innerHeight || document.body.clientHeight);
 
   div.align = "center";
-  div.style.height = "100%";
-  div.style.width = "100%";
-  div.style.overflow = "hidden";
 
   jb.canvas = document.createElement('canvas');
 
@@ -2658,7 +2655,7 @@ jb.resize = function(width, height, constrainScreenBuffer) {
     jb.screenBuffer.height = jb.canvas.height;
   }
   else {
-    var finalScale = Math.min(dx / jb.canvas.width, dy / jb.canvas.height) * jb.webviewMargin;
+    var finalScale = Math.min(dx / jb.canvas.width, dy / jb.canvas.height) * (1.0 - jb.webviewMargin);
     jb.screenBuffer.width = Math.floor(jb.canvas.width * finalScale);
     jb.screenBuffer.height = Math.floor(jb.canvas.height * finalScale);
   }
@@ -2689,7 +2686,7 @@ jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect, doMaximize
   return scale;
 };
 jb.getFontSize = function() {
-    return jb.fontSize * jb.viewScale;
+    return jb.fontSize / jb.viewScale;
 };
 jb.resizeFont = function() {
   var fontInfo = null
@@ -3303,11 +3300,11 @@ jb.KEYCODE = {
 };
 
 jb.screenToViewX = function(x) {
-    return Math.round((x - this.viewOrigin.x) * this.canvas.width / this.screenBuffer.width / this.viewScale);
+    return Math.round((x - this.viewOrigin.x) * this.canvas.width / this.screenBuffer.width);
 };
 
 jb.screenToViewY = function(y) {
-    return Math.round((y - this.viewOrigin.y) * this.canvas.height / this.screenBuffer.height / this.viewScale);
+    return Math.round((y - this.viewOrigin.y) * this.canvas.height / this.screenBuffer.height);
 };
 
 jb.getMouseX = function(e) {
