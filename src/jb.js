@@ -2216,19 +2216,10 @@ jb.render = function() {
   }
 
   if (jb.canvas && jb.canvas.width > 0 && jb.canvas.height > 0) {
-      var finalScale = Math.min(jb.screenBufferCtxt.canvas.width / jb.canvas.width, jb.screenBufferCtxt.canvas.height / jb.canvas.height);
-
-      // Refresh the screen.
-      jb.screenBufferCtxt.save();
-
       // Clear screen.
       jb.screenBufferCtxt.fillStyle = "black";
-      jb.screenBufferCtxt.fillRect(0, 0, jb.canvas.width, jb.canvas.height);
-
-      jb.screenBufferCtxt.translate(-jb.viewOrigin.x, -jb.viewOrigin.y);
-      jb.screenBufferCtxt.scale(finalScale, finalScale);
-      jb.screenBufferCtxt.drawImage(jb.canvas, 0, 0);
-      jb.screenBufferCtxt.restore();
+      jb.screenBufferCtxt.fillRect(0, 0, jb.screenBuffer.width, jb.screenBuffer.height);
+      jb.screenBufferCtxt.drawImage(jb.canvas, 0, 0, jb.canvas.width, jb.canvas.height, 0, 0, jb.screenBuffer.width, jb.screenBuffer.height);
 
       if (jb.program && jb.program.drawGUI && jb.screenBufferCtxt) {
           jb.program.drawGUI(jb.screenBufferCtxt);
@@ -2379,7 +2370,6 @@ jb.cellSize = {
   width: 0,
   height: 0
 };
-jb.globalScale = 1;
 jb.openTypeFont = null;
 jb.openTypeFontSize = 1;
 jb.openTypeFontWidthFudge = 1;
@@ -2408,7 +2398,8 @@ jb.create = function() {
   jb.screenBufferCtxt = jb.screenBuffer.getContext("2d");
 
   // DEBUG:
-  // jb.ctxt = jb.screenBufferCtxt;
+  // jb.ctxt = jb.screenBufferCtxt;B00st3rG0ld!
+  
 
   jb.ctxt.textBaseline = "top";
   jb.resize();
@@ -2575,10 +2566,10 @@ jb.colorRows = function() {
   }
 };
 jb.screenToWorldX = function(screenX) {
-  return screenX / jb.viewScale + jb.viewOrigin.x;
+  return Math.round(screenX * jb.canvas.width / jb.screenBuffer.width / jb.viewScale) + jb.viewOrigin.x;
 };
 jb.screenToWorldY = function(screenY) {
-  return screenY / jb.viewScale + jb.viewOrigin.y;
+  return Math.round(screenY * jb.canvas.height / jb.screenBuffer.height / jb.viewScale) + jb.viewOrigin.y;
 };
 jb.setViewScale = function(newScale) {
   jb.viewScale = newScale;
@@ -2650,32 +2641,30 @@ jb.getWindowSize = function() {
       height: y
   };
 };
-jb.resize = function(width, height, pixelPerfect) {
-  var win = window,
-  doc = document,
-  docElem = doc.documentElement,
-  body = doc.getElementsByTagName('body')[0],
-  dx = win.innerWidth || docElem.clientWidth || body.clientWidth,
-  dy = win.innerHeight|| docElem.clientHeight|| body.clientHeight;
+jb.resize = function(width, height, constrainScreenBuffer) {
+  var windowSize = this.getWindowSize(),
+  dx = windowSize.width,
+  dy = windowSize.height;
 
-  jb.canvas.width = width || dx * 0.95;
-  jb.canvas.height = height || dy * 0.95;
+  jb.canvas.width = width || dx;
+  jb.canvas.height = height || dy;
 
-  if (pixelPerfect) {
+  if (constrainScreenBuffer) {
     jb.screenBuffer.width = jb.canvas.width;
     jb.screenBuffer.height = jb.canvas.height;
   }
   else {
-    jb.screenBuffer.width = dx * 0.95;
-    jb.screenBuffer.height = dy * 0.95;
+    var finalScale = Math.min(dx / jb.canvas.width, dy / jb.canvas.height) * 0.98;
+    jb.screenBuffer.width = Math.floor(jb.canvas.width * finalScale);
+    jb.screenBuffer.height = Math.floor(jb.canvas.height * finalScale);
   }
 
-  this.viewOrigin.x = -Math.round((jb.screenBufferCtxt.canvas.width - jb.canvas.width) * 0.25);
-  this.viewOrigin.y = -Math.round((jb.screenBufferCtxt.canvas.height - jb.canvas.height) * 0.25);
+  this.viewOrigin.x = 0;
+  this.viewOrigin.y = 0;
 
   jb.resizeFont();
 };
-jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect) {
+jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect, doMaximize) {
   pixelPerfect = pixelPerfect === undefined ? true : pixelPerfect;
 
   var windowSize = this.getWindowSize();
@@ -2690,8 +2679,9 @@ jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect) {
     scale = 1.0 / Math.pow(2, scaleLog);
   }
 
-  this.resize(aspectWidth * scale, aspectHeight * scale);
+  this.resize(aspectWidth * scale, aspectHeight * scale, pixelPerfect && !doMaximize);
   jb.setViewScale(scale);
+
   return scale;
 };
 jb.resizeFont = function() {
@@ -3305,12 +3295,47 @@ jb.KEYCODE = {
   DELETE: 46,
 };
 
+jb.screenToViewX = function(x) {
+    return Math.round((x - this.viewOrigin.x) * this.canvas.width / this.screenBuffer.width / this.viewScale);
+};
+
+jb.screenToViewY = function(y) {
+    return Math.round((y - this.viewOrigin.y) * this.canvas.height / this.screenBuffer.height / this.viewScale);
+};
+
 jb.getMouseX = function(e) {
-  return Math.round((e.srcElement ? e.pageX - e.srcElement.offsetLeft : (e.target ? e.pageX - e.target.offsetLeft : e.pageX)) / jb.globalScale);
+    var x = undefined;
+
+    if (e.srcElement === jb.screenBuffer || e.target === jb.screenBuffer) {
+        if (e.offsetX !== undefined) {
+            x = e.offsetX;
+        }
+        else {
+            x = (e.srcElement ? e.pageX - e.srcElement.offsetLeft : (e.target ? e.pageX - e.target.offsetLeft : e.pageX));
+        }
+
+        x = jb.screenToViewX(x);
+    }
+
+    return x;
 };
 
 jb.getMouseY = function(e) {
-  return Math.round((e.srcElement ? e.pageY - e.srcElement.offsetTop : (e.target ? e.pageY - e.target.offsetTop : e.pageY)) / jb.globalScale);
+    var y = undefined;
+
+    if (e.srcElement === jb.screenBuffer || e.target === jb.screenBuffer) {
+        if (e.offsetY !== undefined) {
+            y = e.offsetY;
+        }
+        else {
+            y = (e.srcElement ? e.pageY - e.srcElement.offsetTop : (e.target ? e.pageY - e.target.offsetTop : e.pageY));
+            y = jb.screenToViewY(y);
+        }
+
+        y = jb.screenToViewX(y);
+    }
+
+    return y;
 };
 
 jb.getClientPos = function(touch) {
@@ -3331,8 +3356,8 @@ jb.getClientPos = function(touch) {
       y = touch.pageY - winOffsetY;
   }
 
-  jb.pointInfo.x = x;
-  jb.pointInfo.y = y;
+  jb.pointInfo.x = jb.screenToViewX(x);
+  jb.pointInfo.y = jb.screenToViewY(y);
   jb.pointInfo.srcElement = jb.canvas ? jb.canvas : null;
 
   return jb.pointInfo;
@@ -3466,7 +3491,6 @@ jb.gestureStart = function() {
   var newNow = Date.now(),
       x = jb.pointInfo.x
       y = jb.pointInfo.y;
-
 
   if (jb.tap.bListening) {
       jb.tap.x = x;
