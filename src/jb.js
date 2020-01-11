@@ -2389,6 +2389,16 @@ jb.create = function() {
 
   div.align = "center";
 
+  document.addEventListener("keydown", jb.onDown, false);
+  document.addEventListener("keyup", jb.onUp, false);
+  
+  div.addEventListener("mousedown", jb.mouseDown, false);
+  div.addEventListener("mouseup", jb.mouseUp, false);
+  
+  div.addEventListener("touchstart", jb.touchStart, false);
+  div.addEventListener("touchmove", jb.touchMove, false);
+  div.addEventListener("touchend", jb.touchEnd, false);
+  
   jb.canvas = document.createElement('canvas');
 
   jb.screenBuffer = document.createElement('canvas');
@@ -3701,16 +3711,6 @@ jb.addTouchButton = function(id, left, top, width, height) {
           touchId: -1
       })
   },
-
-  document.addEventListener("keydown", jb.onDown, false);
-document.addEventListener("keyup", jb.onUp, false);
-
-window.addEventListener("mousedown", jb.mouseDown, false);
-window.addEventListener("mouseup", jb.mouseUp, false);
-
-window.addEventListener("touchstart", jb.touchStart, false);
-window.addEventListener("touchmove", jb.touchMove, false);
-window.addEventListener("touchend", jb.touchEnd, false);
 
 ////////////////////////////////////////////////////////////////////////////////
 // oooooooooooo   .oooooo.   ooooo      ooo ooooooooooooo  .oooooo.o 
