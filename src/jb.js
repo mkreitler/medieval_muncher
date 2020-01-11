@@ -2388,7 +2388,9 @@ jb.create = function() {
 
   div.align = "center";
   div.style.height = "100%";
+  div.style.width = "100%";
   div.style.overflow = "hidden";
+  div.style.margin = "0 auto";
 
   jb.canvas = document.createElement('canvas');
 
