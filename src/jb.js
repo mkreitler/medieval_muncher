@@ -2351,6 +2351,7 @@ jb.ctxt = null;
 jb.columns = 80;
 jb.viewScale = 1;
 jb.doScale = false;
+jb.webviewMargin = 1.0;
 jb.viewOrigin = {
   x: 0,
   y: 0
@@ -2389,9 +2390,7 @@ jb.create = function() {
   div.align = "center";
   div.style.height = "100%";
   div.style.width = "100%";
-  div.style.position = "absolute";
   div.style.overflow = "hidden";
-  div.style.margin = "0 auto";
 
   jb.canvas = document.createElement('canvas');
 
@@ -2659,7 +2658,7 @@ jb.resize = function(width, height, constrainScreenBuffer) {
     jb.screenBuffer.height = jb.canvas.height;
   }
   else {
-    var finalScale = Math.min(dx / jb.canvas.width, dy / jb.canvas.height) * 0.98;
+    var finalScale = Math.min(dx / jb.canvas.width, dy / jb.canvas.height) * jb.webviewMargin;
     jb.screenBuffer.width = Math.floor(jb.canvas.width * finalScale);
     jb.screenBuffer.height = Math.floor(jb.canvas.height * finalScale);
   }
