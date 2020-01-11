@@ -2684,6 +2684,9 @@ jb.resizeToWindow = function(aspectWidth, aspectHeight, pixelPerfect, doMaximize
 
   return scale;
 };
+jb.getFontSize = function() {
+    return jb.fontSize * jb.viewScale;
+};
 jb.resizeFont = function() {
   var fontInfo = null
 

@@ -154,7 +154,7 @@ jb.program = {
     jb.setForeColor("white");
 
     if (jb.isTapped()) {
-      var selection = (jb.tap.y - y0) / spacer;
+      var selection = (jb.tap.y - (y0 - jb.getFontSize() / 2)) / spacer;
       selection = Math.floor(Math.max(0, Math.min(selection, jb.k.levelSelectInfo.length - 2)));
       this.currentMap = selection;
     }
