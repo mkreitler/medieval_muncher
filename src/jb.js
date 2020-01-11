@@ -161,7 +161,7 @@ resources = {
           fontactive: function(familyName, fvd) {
               var hiddenDiv = document.createElement("div");
               hiddenDiv.style.height = "100%";
-              hiddenDiv.style.overflow = "auto";
+              hiddenDiv.style.overflow = "hidden";
               hiddenDiv.style.fontFamily = familyName;
               hiddenDiv.style.visibility = "hidden";
               hiddenDiv.innerHTML += familyName + " loaded";
